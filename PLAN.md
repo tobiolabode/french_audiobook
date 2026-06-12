@@ -2,7 +2,7 @@
 
 ## Summary
 
-Build a local web app that turns pasted French learning text into downloadable MP3 audiobooks using ElevenLabs Text to Speech. The app will preserve the useful controls from the existing French TTS Tool: pacing, pause between lines or sections, audio preview, download, and saving generated files into a configured local OneDrive-synced folder.
+Build a local web app that turns pasted French learning text into downloadable MP3 audiobooks using ElevenLabs Text to Speech. The app will preserve the useful controls from the existing French TTS Tool: pacing, pause between lines or sections, audio preview, download, and mandatory saving of generated files into a configured local OneDrive-synced folder.
 
 The app should also be designed for hosting on Vercel. The browser frontend can be served publicly, while secret-handling API routes or backend functions must keep the ElevenLabs API key out of client-side code, source files, logs, and commits.
 
@@ -12,7 +12,7 @@ The ElevenLabs API key that was pasted into chat must be treated as sensitive an
 
 - Create a small full-stack web app:
   - React/Vite or Next.js frontend for text input, voice/model controls, pacing controls, pause controls, preview, download, and generation status.
-  - Backend API for ElevenLabs calls, file writing, download handling, and OneDrive path handling.
+  - Backend API for ElevenLabs calls, file writing, download handling, and required OneDrive path handling.
 - Prefer a Vercel-friendly architecture:
   - Use environment variables for `ELEVENLABS_API_KEY`, default voice/model IDs, and output settings.
   - Keep API calls server-side so the key is never exposed to browser JavaScript.
@@ -30,11 +30,13 @@ The ElevenLabs API key that was pasted into chat must be treated as sensitive an
   - `ONEDRIVE_AUDIO_DIR=`
 - Implement output behavior:
   - Validate that text is non-empty.
+  - Validate that `ONEDRIVE_AUDIO_DIR` is configured and writable before generation starts.
   - Split pasted text by non-empty lines as audiobook segments.
   - Send each segment to ElevenLabs.
   - Combine generated MP3 segments with configurable silence between them.
-  - Save the final MP3 with a sanitized timestamped filename.
-  - Return metadata plus a download URL.
+  - Save the final MP3 with a sanitized timestamped filename inside `ONEDRIVE_AUDIO_DIR`.
+  - Treat OneDrive save failure as a generation failure, not as a silent fallback.
+  - Return metadata including the saved OneDrive path plus a download URL.
 - Keep voice/model flexible:
   - Show configured defaults in the UI.
   - Let the user override voice ID, model ID, voice tuning, playback speed target, pause milliseconds, and output title.
@@ -45,7 +47,9 @@ The ElevenLabs API key that was pasted into chat must be treated as sensitive an
 - Use pytest or the repo's selected test framework for backend behavior:
   - Reject empty text.
   - Sanitize output filenames.
+  - Require `ONEDRIVE_AUDIO_DIR` to be configured and writable.
   - Save generated audio into the configured OneDrive directory during local runs.
+  - Fail clearly if the OneDrive save cannot complete.
   - Never log or return the API key.
   - Mock ElevenLabs and verify request shape: voice ID, model ID, French language code, and text payload.
 - Add frontend smoke coverage:
@@ -56,15 +60,15 @@ The ElevenLabs API key that was pasted into chat must be treated as sensitive an
   - Start the local dev app.
   - Paste two or more French lines.
   - Generate audio.
-  - Confirm MP3 appears in the configured OneDrive folder locally.
+  - Confirm MP3 appears in the configured OneDrive folder locally; this is required for v1 acceptance.
   - Confirm browser preview and download work.
   - Deploy to Vercel with environment variables configured and confirm generation works without exposing secrets.
 
 ## Assumptions
 
 - v1 uses pasted text only; no AI lesson-script generation and no file upload.
-- v1 saves to a local OneDrive-synced folder during local development.
-- Hosted Vercel output may use browser download or later cloud storage, because Vercel functions cannot reliably write to a user's local OneDrive folder.
+- v1 must save every generated audiobook to a local OneDrive-synced folder during local development.
+- Hosted Vercel output cannot write directly to a user's local OneDrive folder; if hosted OneDrive saving is required, add Microsoft Graph upload as the Vercel path instead of download-only behavior.
 - The backend owns all ElevenLabs calls so the API key is never exposed to the browser.
 - The pasted key should be rotated before real use.
 - No commits should include secrets, generated MP3s, `.env`, or OneDrive outputs.
