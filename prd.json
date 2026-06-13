@@ -131,6 +131,32 @@
         "progress.txt"
       ],
       "notes": "Initialized the repository on main. No remote URL was discoverable, so push remains blocked until origin is configured."
+    },
+    {
+      "id": "T005",
+      "title": "Connect repository to GitHub remote",
+      "description": "Configure the local git repository to use the GitHub repository at tobiolabode/french_audiobook, push the current branch, and set upstream tracking.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T004"
+      ],
+      "acceptance_criteria": [
+        "origin points to https://github.com/tobiolabode/french_audiobook.git.",
+        "The current main branch tracks origin/main.",
+        "Committed local work is pushed to the GitHub repository.",
+        "Progress log records the remote connection."
+      ],
+      "test_plan": [
+        "Run git remote -v to confirm origin URL.",
+        "Run git branch -vv to confirm upstream tracking.",
+        "Run git status --short --branch to confirm the branch is clean and synced."
+      ],
+      "files_expected_to_change": [
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "origin configured for the GitHub repository and main is expected to track origin/main after the upstream push."
     }
   ],
   "completion_criteria": [

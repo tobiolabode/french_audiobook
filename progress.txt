@@ -64,3 +64,22 @@ Git:
 
 Notes:
 - No `origin` remote was discoverable, so push is blocked until a remote URL is added.
+
+## 2026-06-14 00:06 - main
+
+Task: T005 Connect repository to GitHub remote
+Summary:
+- Added `origin` pointing to `https://github.com/tobiolabode/french_audiobook.git`.
+- Marked the GitHub remote connection task complete in the PRD.
+
+Tests:
+- `git remote -v`: passed, origin fetch/push URLs point to the GitHub repository.
+- `git config user.name` / `git config user.email`: passed, identity matches AGENTS.md.
+- `git status --short --branch`: passed, only tracking docs are modified before commit.
+
+Git:
+- Commit: not committed yet
+- Pushed: pending upstream push
+
+Notes:
+- The push will use `git push -u origin HEAD` so local `main` tracks `origin/main`.
