@@ -76,10 +76,13 @@ Tests:
 - `git remote -v`: passed, origin fetch/push URLs point to the GitHub repository.
 - `git config user.name` / `git config user.email`: passed, identity matches AGENTS.md.
 - `git status --short --branch`: passed, only tracking docs are modified before commit.
+- `git fetch origin`: passed, fetched existing GitHub main.
+- `git branch -vv`: passed, local `main` tracks `origin/main`.
+- `git status --short --branch`: passed after push, local `main` is aligned with `origin/main`.
 
 Git:
-- Commit: not committed yet
-- Pushed: pending upstream push
+- Commit: d278f56, followed by merge commit 7b367f0
+- Pushed: yes
 
 Notes:
-- The push will use `git push -u origin HEAD` so local `main` tracks `origin/main`.
+- The remote already had unrelated history, so `origin/main` was merged with the `ours` strategy to preserve the current local tree while connecting histories without a force push.

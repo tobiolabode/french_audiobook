@@ -156,7 +156,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "origin configured for the GitHub repository and main is expected to track origin/main after the upstream push."
+      "notes": "origin is configured for the GitHub repository and main tracks origin/main."
     }
   ],
   "completion_criteria": [
