@@ -1,0 +1,143 @@
+{
+  "project_name": "French Audiobook React App",
+  "goal": "Pivot the French audiobook tool to a React app experience for turning French text into generated audiobook MP3 files, while keeping secret-bearing audio generation on a server-side boundary.",
+  "non_goals": [
+    "Continuing the previous static local web page plan as the main product direction",
+    "Exposing the ElevenLabs API key to browser code",
+    "Hosted OneDrive upload via Microsoft Graph in the first React iteration",
+    "Voice marketplace browsing or AI lesson generation in the first React iteration"
+  ],
+  "constraints": [
+    "Treat the previous local static web app work as superseded by the React direction.",
+    "Never expose or return the ElevenLabs API key.",
+    "Keep audio generation and filesystem writes behind server-side code.",
+    "Use environment variables for secrets and configurable defaults.",
+    "Keep the first React implementation small, reviewable, and easy to roll back.",
+    "Prefer behavior-focused tests for generation, API contracts, and core React user flows."
+  ],
+  "architecture_notes": [
+    "The React app should own the interactive browser experience: text entry, title/voice/model controls, generation state, preview, download, and errors.",
+    "The backend boundary should continue to own validation, ElevenLabs request shape, output directory validation, filename sanitization, file writing, preview, and download serving.",
+    "The project may either keep the current Python generation modules behind an HTTP API or wrap them from a React-focused dev stack, but browser code must never call ElevenLabs directly with a secret key.",
+    "Vercel deployment remains a future architecture task unless storage is redesigned away from direct local OneDrive writes."
+  ],
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Realign project docs for React app pivot",
+      "description": "Update planning and progress docs to record that the previous local static web app direction is superseded and that the next product direction is a React app.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [],
+      "acceptance_criteria": [
+        "PRD goal names the React app direction.",
+        "PRD constraints explicitly protect API secrets from browser code.",
+        "PRD tasks define the next implementation steps without treating superseded work as complete.",
+        "Progress log records the plan change and current repository state."
+      ],
+      "test_plan": [
+        "Validate prd.json parses as JSON."
+      ],
+      "files_expected_to_change": [
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Documentation-only task created after the rollback/change-of-plan request."
+    },
+    {
+      "id": "T002",
+      "title": "Choose React app stack and scaffold shell",
+      "description": "Pick the React project structure that best fits this repository, then add the initial app shell with the main audiobook generation workflow visible on the first screen.",
+      "status": "blocked",
+      "priority": "high",
+      "dependencies": [
+        "T001"
+      ],
+      "acceptance_criteria": [
+        "React app can be started locally with documented commands.",
+        "First screen contains the usable audiobook generation form, not a marketing landing page.",
+        "The UI includes text, title, voice/model, voice tuning, pause, and speed controls.",
+        "The app has clear loading, success, empty, and error states.",
+        "No browser bundle contains secret environment variables."
+      ],
+      "test_plan": [
+        "Run the React test suite or configured component tests.",
+        "Run the build command.",
+        "Verify the local app in a browser."
+      ],
+      "files_expected_to_change": [
+        "package.json",
+        "src/",
+        "tests/",
+        "README.md",
+        ".env.example",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Selected Vite + React + TypeScript. Source, tests, and docs are scaffolded, but task cannot be marked done in this environment because npm/pytest are unavailable."
+    },
+    {
+      "id": "T003",
+      "title": "Connect React UI to server-side audiobook generation",
+      "description": "Wire the React workflow to a server-side endpoint that uses the existing generation behavior without leaking secrets.",
+      "status": "todo",
+      "priority": "high",
+      "dependencies": [
+        "T002"
+      ],
+      "acceptance_criteria": [
+        "Submitting the React form calls a server-side generation endpoint.",
+        "Successful generation returns saved path metadata, segment count, preview URL, and download URL.",
+        "Preview and download URLs serve only generated files from the configured output directory.",
+        "API and UI errors are understandable and do not expose secret values.",
+        "Existing generator behavior remains covered by tests."
+      ],
+      "test_plan": [
+        "Run backend tests.",
+        "Run frontend tests.",
+        "Run the build command.",
+        "Manually verify a local generation flow with mocked or configured ElevenLabs access."
+      ],
+      "files_expected_to_change": [
+        "src/",
+        "tests/",
+        "README.md",
+        ".env.example",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T004",
+      "title": "Restore git repository and commit current work",
+      "description": "Initialize git for this project folder, configure the required author identity, add a conventional ignore file, and commit the current tracked project state so future work can follow the commit workflow.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [],
+      "acceptance_criteria": [
+        "The project folder is a valid git repository.",
+        "Repository-local git author identity matches the AGENTS.md instruction.",
+        "A first commit exists containing the current project files and tracking docs.",
+        "Push status is recorded clearly when no remote is configured."
+      ],
+      "test_plan": [
+        "Run git status to confirm repository health.",
+        "Run git log to confirm the first commit exists."
+      ],
+      "files_expected_to_change": [
+        ".gitignore",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Initialized the repository on main. No remote URL was discoverable, so push remains blocked until origin is configured."
+    }
+  ],
+  "completion_criteria": [
+    "The React app runs locally.",
+    "The React workflow can generate, preview, and download audiobook MP3s through a server-side boundary.",
+    "Relevant tests and build checks pass.",
+    "Planning docs and progress log reflect completed tasks.",
+    "Changes are committed and pushed from a valid git repository."
+  ]
+}

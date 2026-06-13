@@ -1,0 +1,66 @@
+## 2026-06-13 23:15 - no-git-repo
+
+Task: T001 Realign project docs for React app pivot
+Summary:
+- Updated the PRD to make the React app the new product direction.
+- Marked the previous local static web app direction as superseded.
+- Added follow-up tasks for choosing/scaffolding the React stack and connecting it to server-side audiobook generation.
+
+Tests:
+- `Get-Content prd.json -Raw | ConvertFrom-Json | Out-Null; Write-Output "prd.json valid"`: passed.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- `git branch --show-current` and `git status --short` failed because this folder is not currently inside a git repository.
+
+## 2026-06-13 23:54 - no-git-repo
+
+Task: T002 Choose React app stack and scaffold shell
+Summary:
+- Added a Vite + React + TypeScript app under `src/app`.
+- Implemented the first-screen audiobook workflow with text, title, voice/model, pause, speed, stability, similarity, and style controls.
+- Added loading, success, empty, and error UI states plus preview/download/metadata rendering.
+- Added React component tests for the first-screen workflow and successful generation result.
+- Added README commands and configured Vite to build into `src/french_audiobook/static`.
+- Replaced the old vanilla static app with a fallback page that points to the React build/dev flow.
+- Checked current Vite docs and aligned the scaffold with Vite 8 plus the documented Node 20.19+/22.12+ baseline.
+
+Tests:
+- `npm test`: failed, `npm` is not installed or on PATH.
+- `$env:PYTHONPATH='src'; pytest`: failed, `pytest` is not installed or on PATH.
+- `$env:PYTHONPATH='src'; python -m pytest`: failed, `python` is not installed or on PATH.
+- `$env:PYTHONPATH='src'; py -m pytest`: failed, Windows launcher reports no installed Python.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest`: failed, `pytest` is not installed in Miniconda base.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json`: passed.
+- Cursor bundled Node JSON parse for package/tsconfig files: passed.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- `git branch --show-current` and `git status --short` failed because this folder is not currently inside a git repository.
+- Frontend install/build/test verification is blocked until Node/npm or another package manager is available.
+
+## 2026-06-13 23:58 - main
+
+Task: T004 Restore git repository and commit current work
+Summary:
+- Initialized this folder as a git repository on `main`.
+- Configured repository-local git identity for Tobi Olabode.
+- Added `.gitignore` for local env files, dependency folders, build/test caches, and generated audio.
+- Updated the PRD to record the git repair and remove the no-repository blocker from T002.
+
+Tests:
+- `git status --short --branch`: passed after initialization.
+- `git config user.name` / `git config user.email`: passed, identity matches AGENTS.md.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- No `origin` remote was discoverable, so push will be blocked until a remote URL is added.

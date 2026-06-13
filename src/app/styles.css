@@ -1,0 +1,285 @@
+:root {
+  color: #1c2526;
+  background: #f4f6f1;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.editor-panel,
+.result-panel {
+  border: 1px solid #d3d9d1;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.editor-panel {
+  padding: 24px;
+}
+
+.result-panel {
+  align-self: start;
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 8px;
+  background: #123a3f;
+  color: #f5c95f;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 4px;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+p {
+  color: #526163;
+}
+
+.generation-form {
+  display: grid;
+  gap: 18px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: #263436;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid #c6d0cf;
+  border-radius: 6px;
+  background: #fbfcfa;
+  color: #1c2526;
+  padding: 11px 12px;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #2e6b71;
+  outline: 3px solid #cfe8e4;
+}
+
+textarea {
+  min-height: 260px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  color: #60706f;
+  font-size: 13px;
+}
+
+.voice-tuning {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  margin: 0;
+  border: 1px solid #d6dddc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.voice-tuning legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  color: #263436;
+  font-weight: 800;
+}
+
+.range-field span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+output {
+  color: #6d4b10;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  accent-color: #2e6b71;
+  padding: 0;
+}
+
+.primary-action,
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  background: #123a3f;
+  color: #ffffff;
+  padding: 0 16px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.primary-action {
+  cursor: pointer;
+}
+
+.primary-action:disabled {
+  background: #7a9092;
+  cursor: wait;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+.result-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #526163;
+}
+
+.status.success {
+  color: #17633a;
+}
+
+.status.attention {
+  color: #8a5112;
+}
+
+audio {
+  width: 100%;
+}
+
+.metadata {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.metadata dt {
+  color: #526163;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.metadata dd {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.empty-state {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  border: 1px dashed #c6d0cf;
+  border-radius: 8px;
+  padding: 28px 18px;
+  color: #60706f;
+  text-align: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .workspace,
+  .field-grid,
+  .voice-tuning {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-panel,
+  .result-panel {
+    padding: 16px;
+  }
+}
