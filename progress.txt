@@ -106,8 +106,9 @@ Tests:
 - `git diff --check`: passed.
 
 Git:
-- Commit: not committed yet
+- Commit: efffb2c
 - Pushed: no
 
 Notes:
 - First-version app code is in place, but T003 remains blocked from done until frontend dependencies/test tooling are available and real generation can be verified with a local ElevenLabs key and output directory.
+- `git push` failed in the sandbox due GitHub network access, then the escalated push request was rejected by the safety review.
