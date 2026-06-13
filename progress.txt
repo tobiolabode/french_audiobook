@@ -112,3 +112,32 @@ Git:
 Notes:
 - First-version app code is in place, but T003 remains blocked from done until frontend dependencies/test tooling are available and real generation can be verified with a local ElevenLabs key and output directory.
 - `git push` failed in the sandbox due GitHub network access, then the escalated push request was rejected by the safety review.
+
+## 2026-06-14 00:28 - main
+
+Task: T006 Provision local Node and npm toolchain
+Summary:
+- Installed Node.js v22.12.0 with npm v10.9.0 under ignored `.tools/nodejs`.
+- Added `node.cmd`, `npm.cmd`, and `npx.cmd` shims to `C:\Users\tnint\tools`, which is already on PATH in this shell.
+- Installed frontend dependencies and generated `package-lock.json`.
+- Fixed the React range-control test queries now that the frontend suite can run.
+- Prevented TypeScript project builds from emitting config JS/declaration files at the repo root.
+- Built the React app into `src/french_audiobook/static`.
+
+Tests:
+- `node --version`: passed, v22.12.0.
+- `npm --version`: passed, 10.9.0.
+- `npm install`: passed, 158 packages installed, 0 vulnerabilities.
+- `npm test`: passed, 1 test file and 3 tests.
+- `npm run build`: passed.
+- `C:\ProgramData\miniconda3\python.exe -m compileall src tests`: passed.
+- `C:\ProgramData\miniconda3\python.exe -m pytest`: failed, pytest is not installed in the available Python environment.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json | Out-Null`: passed.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- An attempted HKCU PATH update with `setx` reported success but did not persist in this sandbox. The command shims in `C:\Users\tnint\tools` make `node`, `npm`, and `npx` work here.
+- Python pytest remains a separate tooling task; Node/npm are fixed.

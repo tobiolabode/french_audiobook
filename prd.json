@@ -74,7 +74,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "Selected Vite + React + TypeScript. Source, tests, and docs are scaffolded, but task cannot be marked done in this environment because npm/pytest are unavailable."
+      "notes": "Selected Vite + React + TypeScript. Source, tests, and docs are scaffolded. Node/npm are now available and frontend tests/build pass; browser dev-server verification remains pending."
     },
     {
       "id": "T003",
@@ -106,7 +106,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "First-version hookup is implemented: React posts to the Python API, the API returns preview/download metadata, downloads are constrained to the output directory, and config readiness is exposed without leaking the ElevenLabs key. Blocked from done because this environment still lacks npm/Node and pytest, and real end-to-end audio generation needs a local ElevenLabs key plus output directory."
+      "notes": "First-version hookup is implemented: React posts to the Python API, the API returns preview/download metadata, downloads are constrained to the output directory, and config readiness is exposed without leaking the ElevenLabs key. Frontend tests/build now pass. Blocked from done because pytest is unavailable in the Python environment and real end-to-end audio generation needs a local ElevenLabs key plus output directory."
     },
     {
       "id": "T004",
@@ -157,6 +157,35 @@
         "progress.txt"
       ],
       "notes": "origin is configured for the GitHub repository and main tracks origin/main."
+    },
+    {
+      "id": "T006",
+      "title": "Provision local Node and npm toolchain",
+      "description": "Make Node.js and npm available locally so the React app can install dependencies, run tests, and build.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T002"
+      ],
+      "acceptance_criteria": [
+        "A local `node --version` command succeeds.",
+        "A local `npm --version` command succeeds.",
+        "Frontend dependencies can be installed for this project.",
+        "`npm test` and `npm run build` have been attempted and results are recorded."
+      ],
+      "test_plan": [
+        "Run `node --version`.",
+        "Run `npm --version`.",
+        "Run `npm install`.",
+        "Run `npm test`.",
+        "Run `npm run build`."
+      ],
+      "files_expected_to_change": [
+        "package-lock.json",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Installed Node.js v22.12.0 under the ignored `.tools/nodejs` directory, added node/npm/npx shims to `C:\\Users\\tnint\\tools`, installed frontend dependencies, generated package-lock.json, and verified npm test/build."
     }
   ],
   "completion_criteria": [

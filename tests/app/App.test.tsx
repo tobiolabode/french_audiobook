@@ -28,10 +28,10 @@ describe("App", () => {
     expect(screen.getByLabelText("Voice ID")).toBeInTheDocument();
     expect(screen.getByLabelText("Model ID")).toBeInTheDocument();
     expect(screen.getByLabelText("Pause")).toBeInTheDocument();
-    expect(screen.getByLabelText("Speed")).toBeInTheDocument();
-    expect(screen.getByLabelText("Stability")).toBeInTheDocument();
-    expect(screen.getByLabelText("Similarity")).toBeInTheDocument();
-    expect(screen.getByLabelText("Style")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Speed" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Stability" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Similarity" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Style" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /generate mp3/i })).toBeInTheDocument();
 
     await waitFor(() => {

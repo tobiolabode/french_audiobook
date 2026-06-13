@@ -1,6 +1,7 @@
 .env
 .env.local
 node_modules/
+.tools/
 dist/
 coverage/
 .vite/
