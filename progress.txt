@@ -59,8 +59,8 @@ Tests:
 - `git config user.name` / `git config user.email`: passed, identity matches AGENTS.md.
 
 Git:
-- Commit: not committed yet
+- Commit: 443cf37
 - Pushed: no
 
 Notes:
-- No `origin` remote was discoverable, so push will be blocked until a remote URL is added.
+- No `origin` remote was discoverable, so push is blocked until a remote URL is added.
