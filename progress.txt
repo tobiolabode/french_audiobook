@@ -135,9 +135,10 @@ Tests:
 - `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json | Out-Null`: passed.
 
 Git:
-- Commit: not committed yet
+- Commit: 1dcf51e
 - Pushed: no
 
 Notes:
 - An attempted HKCU PATH update with `setx` reported success but did not persist in this sandbox. The command shims in `C:\Users\tnint\tools` make `node`, `npm`, and `npx` work here.
 - Python pytest remains a separate tooling task; Node/npm are fixed.
+- `git push` failed in the sandbox due GitHub network access, then the escalated push request was rejected by the safety review.
