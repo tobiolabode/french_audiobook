@@ -104,10 +104,15 @@ export function App() {
   }
 
   const configMessage = config
-    ? config.has_default_voice
-      ? `Saving to ${config.output_dir}`
-      : "Default voice is not configured."
+    ? config.missing_required.length > 0
+      ? `Set ${config.missing_required.join(", ")} in .env to enable generation.`
+      : config.has_default_voice
+        ? `Saving to ${config.output_dir}`
+        : "Enter a Voice ID or set ELEVENLABS_DEFAULT_VOICE_ID."
     : configError || "Checking local config...";
+  const needsVoiceId = Boolean(config && !config.has_default_voice);
+  const missingServerConfig = Boolean(config && config.missing_required.length > 0);
+  const canGenerate = Boolean(config) && !missingServerConfig && (!needsVoiceId || Boolean(form.voiceId.trim()));
 
   return (
     <main className="app-shell">
@@ -170,6 +175,7 @@ export function App() {
                 <input
                   name="voice_id"
                   type="text"
+                  required={needsVoiceId}
                   value={form.voiceId}
                   placeholder="Use configured default"
                   onChange={(event) => setForm({ ...form, voiceId: event.target.value })}
@@ -228,7 +234,7 @@ export function App() {
               />
             </fieldset>
 
-            <button className="primary-action" type="submit" disabled={isGenerating}>
+            <button className="primary-action" type="submit" disabled={isGenerating || !canGenerate}>
               {isGenerating ? <LoaderCircle className="spin" size={20} /> : <FileAudio size={20} />}
               Generate MP3
             </button>

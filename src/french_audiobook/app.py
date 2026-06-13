@@ -31,6 +31,8 @@ class AppConfigError(RuntimeError):
 @dataclass(frozen=True)
 class AppSettings:
     config: AudiobookConfig
+    missing_required: tuple[str, ...] = ()
+    output_dir_configured: bool = True
 
 
 def load_env_file(path: Path = ENV_FILE, env: dict[str, str] | None = None) -> None:
@@ -54,7 +56,7 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
         load_env_file()
     values = env or os.environ
     api_key = values.get("ELEVENLABS_API_KEY", "").strip()
-    output_dir = values.get("ONEDRIVE_AUDIO_DIR", "").strip()
+    output_dir_value = values.get("ONEDRIVE_AUDIO_DIR", "").strip()
     voice_id = values.get("ELEVENLABS_DEFAULT_VOICE_ID", "").strip()
     model_id = values.get("ELEVENLABS_DEFAULT_MODEL_ID", DEFAULT_MODEL_ID).strip() or DEFAULT_MODEL_ID
 
@@ -62,21 +64,20 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
         name
         for name, value in {
             "ELEVENLABS_API_KEY": api_key,
-            "ONEDRIVE_AUDIO_DIR": output_dir,
-            "ELEVENLABS_DEFAULT_VOICE_ID": voice_id,
+            "ONEDRIVE_AUDIO_DIR": output_dir_value,
         }.items()
         if not value
     ]
-    if missing:
-        raise AppConfigError(f"Missing required environment variable: {', '.join(missing)}")
 
     return AppSettings(
         config=AudiobookConfig(
             api_key=api_key,
-            output_dir=Path(output_dir),
+            output_dir=Path(output_dir_value or "generated"),
             default_voice_id=voice_id,
             default_model_id=model_id,
-        )
+        ),
+        missing_required=tuple(missing),
+        output_dir_configured=bool(output_dir_value),
     )
 
 
@@ -87,6 +88,13 @@ def build_generation_payload(result: GenerationResult) -> dict[str, Any]:
         "preview_url": result.download_url,
         "segments": result.segments,
     }
+
+
+def missing_generation_config(settings: AppSettings, *, voice_id: str | None = None) -> list[str]:
+    missing = list(settings.missing_required)
+    if not (voice_id or settings.config.default_voice_id).strip():
+        missing.append("ELEVENLABS_DEFAULT_VOICE_ID or voice_id")
+    return missing
 
 
 def resolve_download_path(output_dir: Path, requested_name: str) -> Path:
@@ -109,6 +117,9 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
 
         try:
             body = self._read_json_body()
+            missing = missing_generation_config(self._settings, voice_id=body.get("voice_id") or None)
+            if missing:
+                raise AppConfigError(f"Missing required configuration: {', '.join(missing)}")
             generator = AudiobookGenerator(
                 config=self._settings.config,
                 tts_client=ElevenLabsClient(),
@@ -136,7 +147,10 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
                 {
                     "default_model_id": self._settings.config.default_model_id,
                     "has_default_voice": bool(self._settings.config.default_voice_id),
-                    "output_dir": str(self._settings.config.output_dir),
+                    "output_dir": str(self._settings.config.output_dir)
+                    if self._settings.output_dir_configured
+                    else "",
+                    "missing_required": list(self._settings.missing_required),
                 },
                 status=HTTPStatus.OK,
             )

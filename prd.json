@@ -80,7 +80,7 @@
       "id": "T003",
       "title": "Connect React UI to server-side audiobook generation",
       "description": "Wire the React workflow to a server-side endpoint that uses the existing generation behavior without leaking secrets.",
-      "status": "todo",
+      "status": "blocked",
       "priority": "high",
       "dependencies": [
         "T002"
@@ -106,7 +106,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": ""
+      "notes": "First-version hookup is implemented: React posts to the Python API, the API returns preview/download metadata, downloads are constrained to the output directory, and config readiness is exposed without leaking the ElevenLabs key. Blocked from done because this environment still lacks npm/Node and pytest, and real end-to-end audio generation needs a local ElevenLabs key plus output directory."
     },
     {
       "id": "T004",

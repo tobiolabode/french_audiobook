@@ -86,3 +86,28 @@ Git:
 
 Notes:
 - The remote already had unrelated history, so `origin/main` was merged with the `ours` strategy to preserve the current local tree while connecting histories without a force push.
+
+## 2026-06-14 00:15 - main
+
+Task: T003 Connect React UI to server-side audiobook generation
+Summary:
+- Added non-secret configuration readiness to the Python API so the server can start without local ElevenLabs settings.
+- Kept `ELEVENLABS_API_KEY` server-side and exposed only missing setting names to the React app.
+- Updated the React form to show missing `.env` settings, require a Voice ID when no default voice is configured, and disable generation until required local config is present.
+- Updated README guidance for first-version usage and clarified that real MP3 generation requires the key locally.
+
+Tests:
+- `npm test`: failed, `npm` is not installed or on PATH.
+- `npm run build`: failed, `npm` is not installed or on PATH.
+- `C:\ProgramData\miniconda3\python.exe -m pytest`: failed, `pytest` is not installed in the available Python environment.
+- `C:\ProgramData\miniconda3\python.exe -m compileall src tests`: passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json | Out-Null`: passed.
+- Inline Python config readiness check: passed.
+- `git diff --check`: passed.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- First-version app code is in place, but T003 remains blocked from done until frontend dependencies/test tooling are available and real generation can be verified with a local ElevenLabs key and output directory.

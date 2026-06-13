@@ -2,6 +2,7 @@ export type AppConfig = {
   default_model_id: string;
   has_default_voice: boolean;
   output_dir: string;
+  missing_required: string[];
 };
 
 export type GeneratePayload = {

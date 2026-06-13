@@ -14,6 +14,7 @@ describe("App", () => {
           default_model_id: "eleven_multilingual_v2",
           has_default_voice: true,
           output_dir: "C:/Users/Tobi/OneDrive/French",
+          missing_required: [],
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
@@ -47,6 +48,7 @@ describe("App", () => {
             default_model_id: "eleven_multilingual_v2",
             has_default_voice: true,
             output_dir: "C:/Audio",
+            missing_required: [],
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
@@ -87,5 +89,29 @@ describe("App", () => {
     expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("href", "/downloads/lecon.mp3");
     expect(screen.getByText("C:/Audio/lecon.mp3")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("shows missing local settings and keeps generation disabled", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          default_model_id: "eleven_multilingual_v2",
+          has_default_voice: false,
+          output_dir: "",
+          missing_required: ["ELEVENLABS_API_KEY", "ONEDRIVE_AUDIO_DIR"],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Set ELEVENLABS_API_KEY, ONEDRIVE_AUDIO_DIR in .env to enable generation."),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Voice ID")).toBeRequired();
+    expect(screen.getByRole("button", { name: /generate mp3/i })).toBeDisabled();
   });
 });

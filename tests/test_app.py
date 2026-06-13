@@ -6,10 +6,10 @@ from urllib.error import HTTPError
 import pytest
 
 from french_audiobook.app import (
-    AppConfigError,
     app_settings_from_env,
     build_generation_payload,
     load_env_file,
+    missing_generation_config,
     resolve_download_path,
     _voice_settings_from_body,
 )
@@ -20,8 +20,10 @@ def test_app_settings_require_secret_and_output_dir(tmp_path, monkeypatch):
     monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     monkeypatch.setenv("ONEDRIVE_AUDIO_DIR", str(tmp_path))
 
-    with pytest.raises(AppConfigError, match="ELEVENLABS_API_KEY"):
-        app_settings_from_env()
+    settings = app_settings_from_env()
+
+    assert settings.missing_required == ("ELEVENLABS_API_KEY",)
+    assert settings.output_dir_configured is True
 
 
 def test_app_settings_load_defaults_from_environment(tmp_path, monkeypatch):
@@ -34,6 +36,34 @@ def test_app_settings_load_defaults_from_environment(tmp_path, monkeypatch):
     assert settings.config.api_key == "secret-key"
     assert settings.config.output_dir == tmp_path
     assert settings.config.default_voice_id == "voice-1"
+    assert settings.missing_required == ()
+
+
+def test_app_settings_allow_server_start_without_local_config(monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    monkeypatch.delenv("ONEDRIVE_AUDIO_DIR", raising=False)
+    monkeypatch.delenv("ELEVENLABS_DEFAULT_VOICE_ID", raising=False)
+
+    settings = app_settings_from_env()
+
+    assert settings.missing_required == ("ELEVENLABS_API_KEY", "ONEDRIVE_AUDIO_DIR")
+    assert settings.output_dir_configured is False
+    assert str(settings.config.output_dir) == "generated"
+
+
+def test_missing_generation_config_allows_request_voice_without_default(tmp_path):
+    settings = app_settings_from_env(
+        {
+            "ELEVENLABS_API_KEY": "secret-key",
+            "ONEDRIVE_AUDIO_DIR": str(tmp_path),
+            "ELEVENLABS_DEFAULT_VOICE_ID": "",
+        }
+    )
+
+    assert missing_generation_config(settings, voice_id="voice-from-form") == []
+    assert missing_generation_config(settings, voice_id=None) == [
+        "ELEVENLABS_DEFAULT_VOICE_ID or voice_id"
+    ]
 
 
 def test_load_env_file_adds_missing_values_without_overwriting(tmp_path):
