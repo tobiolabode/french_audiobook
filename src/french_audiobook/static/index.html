@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>French Audiobook</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="workspace">
+        <div class="editor">
+          <header>
+            <h1>French Audiobook</h1>
+            <p>Paste French text, tune the voice, and generate an MP3.</p>
+          </header>
+
+          <form id="generate-form">
+            <label>
+              Title
+              <input name="title" type="text" placeholder="Lecon du jour" />
+            </label>
+
+            <label>
+              French text
+              <textarea name="text" rows="13" required placeholder="Bonjour..."></textarea>
+            </label>
+
+            <div class="grid">
+              <label>
+                Voice ID
+                <input name="voice_id" type="text" placeholder="Use configured default" />
+              </label>
+              <label>
+                Model ID
+                <input name="model_id" type="text" placeholder="eleven_multilingual_v2" />
+              </label>
+            </div>
+
+            <div class="grid compact">
+              <label>
+                Pause ms
+                <input name="pause_ms" type="number" min="0" step="50" value="500" />
+              </label>
+              <label>
+                Speed
+                <input name="speed" type="number" min="0.7" max="1.2" step="0.05" value="1" />
+              </label>
+              <label>
+                Stability
+                <input name="stability" type="number" min="0" max="1" step="0.05" value="0.5" />
+              </label>
+              <label>
+                Similarity
+                <input name="similarity_boost" type="number" min="0" max="1" step="0.05" value="0.75" />
+              </label>
+            </div>
+
+            <button id="submit-button" type="submit">Generate MP3</button>
+          </form>
+        </div>
+
+        <aside class="result" aria-live="polite">
+          <h2>Output</h2>
+          <p id="status">Ready.</p>
+          <audio id="preview" controls hidden></audio>
+          <a id="download" class="download" hidden>Download MP3</a>
+          <dl id="metadata" hidden>
+            <dt>Saved path</dt>
+            <dd id="saved-path"></dd>
+            <dt>Segments</dt>
+            <dd id="segments"></dd>
+          </dl>
+        </aside>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

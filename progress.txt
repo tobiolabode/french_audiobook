@@ -1,0 +1,20 @@
+## 2026-06-13 22:20 - main
+
+Task: T001 Ship local web app v1
+Summary:
+- Added a dependency-free local HTTP app with a static browser UI and /api/generate endpoint.
+- Added an ElevenLabs client that keeps API calls server-side and avoids leaking API keys in errors.
+- Added safe download/preview serving from the configured output directory.
+- Added .env.example, README run instructions, and PRD tracking.
+
+Tests:
+- TMPDIR=/home/tnint/coding/french_audiobook/.tmp .venv/bin/pytest
+- Result: 15 passed
+
+Git:
+- Commit: 40b2d49
+- Pushed: no
+
+Notes:
+- Manual generation still requires real ELEVENLABS_API_KEY, ELEVENLABS_DEFAULT_VOICE_ID, and ONEDRIVE_AUDIO_DIR values in local .env.
+- Whole PRD is complete for the current first local app version.

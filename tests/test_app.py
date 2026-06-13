@@ -1,0 +1,132 @@
+import json
+from types import SimpleNamespace
+from urllib.error import HTTPError
+
+import pytest
+
+from french_audiobook.app import (
+    AppConfigError,
+    app_settings_from_env,
+    build_generation_payload,
+    resolve_download_path,
+)
+from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError
+
+
+def test_app_settings_require_secret_and_output_dir(tmp_path, monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    monkeypatch.setenv("ONEDRIVE_AUDIO_DIR", str(tmp_path))
+
+    with pytest.raises(AppConfigError, match="ELEVENLABS_API_KEY"):
+        app_settings_from_env()
+
+
+def test_app_settings_load_defaults_from_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "secret-key")
+    monkeypatch.setenv("ONEDRIVE_AUDIO_DIR", str(tmp_path))
+    monkeypatch.setenv("ELEVENLABS_DEFAULT_VOICE_ID", "voice-1")
+
+    settings = app_settings_from_env()
+
+    assert settings.config.api_key == "secret-key"
+    assert settings.config.output_dir == tmp_path
+    assert settings.config.default_voice_id == "voice-1"
+
+
+def test_build_generation_payload_omits_api_key(tmp_path):
+    result = SimpleNamespace(
+        path=tmp_path / "lesson.mp3",
+        download_url="/downloads/lesson.mp3",
+        segments=2,
+    )
+
+    payload = build_generation_payload(result)
+
+    assert payload == {
+        "path": str(tmp_path / "lesson.mp3"),
+        "download_url": "/downloads/lesson.mp3",
+        "preview_url": "/downloads/lesson.mp3",
+        "segments": 2,
+    }
+
+
+def test_resolve_download_path_stays_inside_output_dir(tmp_path):
+    audio = tmp_path / "lesson.mp3"
+    audio.write_bytes(b"audio")
+
+    assert resolve_download_path(tmp_path, "lesson.mp3") == audio
+
+    with pytest.raises(FileNotFoundError):
+        resolve_download_path(tmp_path, "../secret.env")
+
+
+def test_elevenlabs_client_sends_expected_request(monkeypatch):
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b"mp3"
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr("french_audiobook.elevenlabs.urlopen", fake_urlopen)
+
+    client = ElevenLabsClient()
+    audio = client.synthesize(
+        api_key="secret-key",
+        voice_id="voice-1",
+        model_id="eleven_multilingual_v2",
+        language_code="fr",
+        output_format="mp3_44100_128",
+        text="Bonjour",
+        voice_settings={"stability": 0.5},
+    )
+
+    assert audio == b"mp3"
+    assert captured["url"].endswith("/v1/text-to-speech/voice-1?output_format=mp3_44100_128")
+    assert captured["headers"]["Xi-api-key"] == "secret-key"
+    assert captured["body"] == {
+        "text": "Bonjour",
+        "model_id": "eleven_multilingual_v2",
+        "language_code": "fr",
+        "voice_settings": {"stability": 0.5},
+    }
+    assert captured["timeout"] == 60
+
+
+def test_elevenlabs_error_does_not_expose_api_key(monkeypatch):
+    def fake_urlopen(request, timeout):
+        raise HTTPError(
+            request.full_url,
+            401,
+            "Unauthorized secret-key",
+            hdrs=None,
+            fp=None,
+        )
+
+    monkeypatch.setattr("french_audiobook.elevenlabs.urlopen", fake_urlopen)
+
+    client = ElevenLabsClient()
+    with pytest.raises(ElevenLabsError) as exc_info:
+        client.synthesize(
+            api_key="secret-key",
+            voice_id="voice-1",
+            model_id="eleven_multilingual_v2",
+            language_code="fr",
+            output_format="mp3_44100_128",
+            text="Bonjour",
+            voice_settings={},
+        )
+
+    assert "secret-key" not in str(exc_info.value)

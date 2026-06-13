@@ -1,0 +1,58 @@
+{
+  "project_name": "French Audiobook Learning Tool",
+  "goal": "Create a first local web-app version that turns pasted French text into MP3 audiobook files using server-side ElevenLabs calls and saves them to a configured OneDrive-synced directory.",
+  "non_goals": [
+    "Voice-list dropdowns",
+    "AI lesson generation",
+    "File upload",
+    "Hosted OneDrive upload via Microsoft Graph"
+  ],
+  "constraints": [
+    "Never expose or return the ElevenLabs API key.",
+    "Generated MP3s must be saved to ONEDRIVE_AUDIO_DIR during local runs.",
+    "Use environment variables for secrets and configurable defaults.",
+    "Keep the first version small and reviewable."
+  ],
+  "architecture_notes": [
+    "The existing Python generator owns validation, ElevenLabs request shape, output directory validation, filename sanitization, and file writing.",
+    "The first app layer exposes a local HTTP UI and JSON API around the generator without committing secrets.",
+    "Vercel deployment remains a future architecture task because direct local OneDrive writes are not available from hosted serverless functions."
+  ],
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Ship local web app v1",
+      "description": "Add a minimal local web interface and API for generating French audiobook MP3s from pasted text using the existing generator.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [],
+      "acceptance_criteria": [
+        "User can open a local web page with text, title, voice/model, voice tuning, pause, and speed controls.",
+        "Submitting the form calls a server-side generation endpoint.",
+        "Generation endpoint loads ELEVENLABS_API_KEY, voice/model defaults, and ONEDRIVE_AUDIO_DIR from the environment.",
+        "Successful generation returns metadata with saved path, segment count, preview URL, and download URL.",
+        "Download and preview URLs serve only generated files from the configured output directory.",
+        "Errors are returned clearly without exposing the API key."
+      ],
+      "test_plan": [
+        "pytest"
+      ],
+      "files_expected_to_change": [
+        "src/french_audiobook/app.py",
+        "src/french_audiobook/elevenlabs.py",
+        "src/french_audiobook/static/index.html",
+        "src/french_audiobook/static/app.js",
+        "src/french_audiobook/static/styles.css",
+        "tests/test_app.py",
+        ".env.example",
+        "README.md",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Local stdlib web app, server-side ElevenLabs client, static UI, env template, and tests added."
+    }
+  ],
+  "completion_criteria": [
+    "T001 is done, tests pass, changes are committed, and the branch is pushed."
+  ]
+}

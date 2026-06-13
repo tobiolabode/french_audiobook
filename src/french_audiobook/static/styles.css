@@ -1,0 +1,149 @@
+:root {
+  color: #17202a;
+  background: #f6f7f9;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.editor,
+.result {
+  background: #ffffff;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: 32px;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+form {
+  display: grid;
+  gap: 18px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input,
+textarea,
+button {
+  width: 100%;
+  border-radius: 6px;
+  font: inherit;
+}
+
+input,
+textarea {
+  border: 1px solid #c7cfdb;
+  padding: 11px 12px;
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+button,
+.download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 0;
+  background: #145c9e;
+  color: #ffffff;
+  padding: 0 16px;
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #8ea6bd;
+  cursor: wait;
+}
+
+.result {
+  align-self: start;
+  display: grid;
+  gap: 18px;
+}
+
+audio {
+  width: 100%;
+}
+
+dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+dt {
+  color: #4d5b6a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+dd {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .app {
+    padding: 16px;
+  }
+
+  .workspace,
+  .grid,
+  .compact {
+    grid-template-columns: 1fr;
+  }
+}
