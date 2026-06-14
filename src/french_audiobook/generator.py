@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
+DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"
 DEFAULT_LANGUAGE_CODE = "fr"
 DEFAULT_OUTPUT_FORMAT = "mp3_44100_128"
 DEFAULT_FILENAME = "french-audiobook"

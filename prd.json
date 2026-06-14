@@ -352,6 +352,46 @@
         "progress.txt"
       ],
       "notes": "The screenshot showed a disabled Generate MP3 button while `has_default_voice` was false. The UI now leaves the button enabled when only Voice ID input is missing so native required-field validation can guide the user. Implementation is committed locally; completion is blocked only on explicit approval to push to the external GitHub remote."
+    },
+    {
+      "id": "T012",
+      "title": "Use default voice ID and unblock MP3 download flow",
+      "description": "Configure a built-in default ElevenLabs voice ID, expose it through non-secret config, and populate the React Voice ID field so users do not need to type it before generating and downloading MP3 files.",
+      "status": "blocked",
+      "priority": "high",
+      "dependencies": [
+        "T011"
+      ],
+      "acceptance_criteria": [
+        "The backend uses `JBFqnCBsd6RMkjVDRZzb` as the default voice ID when `ELEVENLABS_DEFAULT_VOICE_ID` is not set.",
+        "`/api/config` includes the non-secret default voice ID and reports `has_default_voice: true` when the built-in default is active.",
+        "The React form fills the Voice ID field from config instead of leaving it empty.",
+        "The Generate MP3 button is not disabled by an empty Voice ID field when a default voice exists.",
+        "Generated MP3 output still renders a normal download link after a successful response.",
+        "Documentation shows the default voice ID and explains it can be overridden."
+      ],
+      "test_plan": [
+        "Add backend tests for built-in default voice fallback and config payload.",
+        "Add frontend tests for default Voice ID autofill and download link rendering.",
+        "Run frontend tests.",
+        "Run backend pytest checks.",
+        "Run Python compile checks.",
+        "Run the production build.",
+        "Verify local `/api/config` reports the default voice ID."
+      ],
+      "files_expected_to_change": [
+        ".env.example",
+        "README.md",
+        "src/app/App.tsx",
+        "src/app/api.ts",
+        "src/french_audiobook/app.py",
+        "src/french_audiobook/generator.py",
+        "tests/app/App.test.tsx",
+        "tests/test_app.py",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Implementation and tests are passing locally. Completion remains blocked until the local commits can be pushed/deployed to the external GitHub/Vercel production path with explicit user approval."
     }
   ],
   "completion_criteria": [

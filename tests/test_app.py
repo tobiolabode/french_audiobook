@@ -50,9 +50,10 @@ def test_app_settings_allow_server_start_without_local_config(monkeypatch):
 
     assert settings.missing_required == ("ELEVENLABS_API_KEY",)
     assert str(settings.config.output_dir) == "generated"
+    assert settings.config.default_voice_id == "JBFqnCBsd6RMkjVDRZzb"
 
 
-def test_missing_generation_config_allows_request_voice_without_default(tmp_path):
+def test_missing_generation_config_uses_built_in_default_voice(tmp_path):
     settings = app_settings_from_env(
         {
             "ELEVENLABS_API_KEY": "secret-key",
@@ -62,9 +63,7 @@ def test_missing_generation_config_allows_request_voice_without_default(tmp_path
     )
 
     assert missing_generation_config(settings, voice_id="voice-from-form") == []
-    assert missing_generation_config(settings, voice_id=None) == [
-        "ELEVENLABS_DEFAULT_VOICE_ID or voice_id"
-    ]
+    assert missing_generation_config(settings, voice_id=None) == []
 
 
 def test_load_env_file_adds_missing_values_without_overwriting(tmp_path):
@@ -116,6 +115,7 @@ def test_build_config_payload_uses_direct_response_storage(tmp_path):
 
     assert build_config_payload(settings) == {
         "default_model_id": "eleven_multilingual_v2",
+        "default_voice_id": "voice-1",
         "has_default_voice": True,
         "storage_mode": "direct_response",
         "missing_required": [],

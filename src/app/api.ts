@@ -1,5 +1,6 @@
 export type AppConfig = {
   default_model_id: string;
+  default_voice_id: string;
   has_default_voice: boolean;
   storage_mode: "direct_response";
   missing_required: string[];
@@ -47,6 +48,7 @@ export async function getConfig(): Promise<AppConfig> {
       hasDefaultVoice: config.has_default_voice,
       missingRequired: config.missing_required,
       storageMode: config.storage_mode,
+      defaultVoiceProvided: Boolean(config.default_voice_id),
     });
     return config;
   } catch (error) {

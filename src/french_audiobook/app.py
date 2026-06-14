@@ -15,6 +15,7 @@ from french_audiobook.generator import (
     AudiobookConfig,
     AudiobookGenerator,
     DEFAULT_MODEL_ID,
+    DEFAULT_VOICE_ID,
     GeneratedAudio,
     GenerationResult,
     OutputDirectoryError,
@@ -58,7 +59,7 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
     values = env or os.environ
     api_key = values.get("ELEVENLABS_API_KEY", "").strip()
     output_dir_value = values.get("ONEDRIVE_AUDIO_DIR", "").strip() or "generated"
-    voice_id = values.get("ELEVENLABS_DEFAULT_VOICE_ID", "").strip()
+    voice_id = values.get("ELEVENLABS_DEFAULT_VOICE_ID", DEFAULT_VOICE_ID).strip() or DEFAULT_VOICE_ID
     model_id = values.get("ELEVENLABS_DEFAULT_MODEL_ID", DEFAULT_MODEL_ID).strip() or DEFAULT_MODEL_ID
 
     missing = [
@@ -99,6 +100,7 @@ def missing_generation_config(settings: AppSettings, *, voice_id: str | None = N
 def build_config_payload(settings: AppSettings) -> dict[str, Any]:
     return {
         "default_model_id": settings.config.default_model_id,
+        "default_voice_id": settings.config.default_voice_id,
         "has_default_voice": bool(settings.config.default_voice_id),
         "storage_mode": "direct_response",
         "missing_required": list(settings.missing_required),

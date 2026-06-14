@@ -70,6 +70,7 @@ export function App() {
         setForm((current) => ({
           ...current,
           modelId: current.modelId || nextConfig.default_model_id,
+          voiceId: current.voiceId || nextConfig.default_voice_id || "",
         }));
       })
       .catch(() => {
@@ -145,9 +146,9 @@ export function App() {
 
   const configMessage = config
     ? config.missing_required.length > 0
-      ? `Set ${config.missing_required.join(", ")} in .env to enable generation.`
+        ? `Set ${config.missing_required.join(", ")} in .env to enable generation.`
       : config.has_default_voice
-        ? "Generated MP3s stream directly to this browser."
+        ? "Default voice is ready."
         : "Enter a Voice ID or set ELEVENLABS_DEFAULT_VOICE_ID."
     : configError || "Checking local config...";
   const needsVoiceId = Boolean(config && !config.has_default_voice);

@@ -15,14 +15,14 @@ Copy `.env.example` to `.env` and fill in the values for local generation:
 
 ```env
 ELEVENLABS_API_KEY=
-ELEVENLABS_DEFAULT_VOICE_ID=
+ELEVENLABS_DEFAULT_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
 ELEVENLABS_DEFAULT_MODEL_ID=eleven_multilingual_v2
 ONEDRIVE_AUDIO_DIR=
 HOST=127.0.0.1
 PORT=8000
 ```
 
-The browser app never receives `ELEVENLABS_API_KEY`; generation stays behind the Python API. The app can start without the key and will show which settings are missing, but generating real audio requires `ELEVENLABS_API_KEY` and either `ELEVENLABS_DEFAULT_VOICE_ID` or a Voice ID entered in the form.
+The browser app never receives `ELEVENLABS_API_KEY`; generation stays behind the Python API. The app can start without the key and will show which settings are missing, but generating real audio requires `ELEVENLABS_API_KEY`. `ELEVENLABS_DEFAULT_VOICE_ID` defaults to a known working voice ID and can be overridden from `.env` or Vercel if you prefer a different voice.
 
 Generated MP3s are streamed directly back from `/api/generate`. The deployed app does not write generated audio to Vercel's filesystem and does not need a `/downloads` route.
 
@@ -64,7 +64,7 @@ Set these environment variables in the Vercel project:
 
 ```env
 ELEVENLABS_API_KEY=
-ELEVENLABS_DEFAULT_VOICE_ID=
+ELEVENLABS_DEFAULT_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
 ELEVENLABS_DEFAULT_MODEL_ID=eleven_multilingual_v2
 ```
 

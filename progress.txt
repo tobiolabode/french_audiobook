@@ -269,3 +269,32 @@ Git:
 Notes:
 - Logs intentionally include lengths, status, filenames, segments, and byte counts, but not the ElevenLabs API key or full source text.
 - `git push` was rejected by the automated safety review because exporting code to the external GitHub remote needs explicit user approval.
+
+## 2026-06-15 00:29 - main
+
+Task: T012 Use default voice ID and unblock MP3 download flow
+Summary:
+- Added `JBFqnCBsd6RMkjVDRZzb` as the built-in default ElevenLabs voice ID.
+- Updated `/api/config` to expose the non-secret default voice ID and report default voice readiness.
+- Updated the React form to fill the Voice ID field from config so users do not need to type it each time.
+- Kept generated MP3 output as a normal browser download link after successful generation.
+- Updated `.env.example` and README configuration docs with the default voice ID and override guidance.
+
+Tests:
+- `npm test -- tests/app/App.test.tsx`: failed red first because the Voice ID field stayed empty, then passed after implementation.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests\test_app.py`: failed red first on missing backend fallback/config payload, then passed after implementation.
+- `npm test`: passed, 1 test file and 5 tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests\test_generator.py tests\test_app.py`: passed, 17 tests.
+- `C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `npm run build`: passed.
+- `Invoke-RestMethod http://127.0.0.1:8000/api/config | ConvertTo-Json -Compress`: passed with `default_voice_id` set and `missing_required: []` using a dummy local API key.
+- `Invoke-WebRequest http://127.0.0.1:5173/ -UseBasicParsing`: passed, HTTP 200.
+
+Git:
+- Commit: this commit
+- Pushed: no
+
+Notes:
+- In-app browser verification was attempted, but the browser helper failed because the Windows sandbox helper executable is missing in this environment.
+- The local dev API and Vite servers were stopped after HTTP verification.
+- Publishing this fix to the live Vercel app still requires explicit approval to push/deploy external changes.
