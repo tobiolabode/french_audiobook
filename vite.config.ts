@@ -5,14 +5,13 @@ export default defineConfig({
   plugins: [react()],
   root: "src/app",
   build: {
-    outDir: "../french_audiobook/static",
+    outDir: "../../dist",
     emptyOutDir: true,
   },
   server: {
     port: 5173,
     proxy: {
       "/api": "http://127.0.0.1:8000",
-      "/downloads": "http://127.0.0.1:8000",
     },
   },
 });

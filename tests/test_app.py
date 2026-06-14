@@ -7,7 +7,10 @@ import pytest
 
 from french_audiobook.app import (
     app_settings_from_env,
+    audio_response_headers,
+    build_config_payload,
     build_generation_payload,
+    generate_audio_from_body,
     load_env_file,
     missing_generation_config,
     resolve_download_path,
@@ -23,7 +26,6 @@ def test_app_settings_require_secret_and_output_dir(tmp_path, monkeypatch):
     settings = app_settings_from_env()
 
     assert settings.missing_required == ("ELEVENLABS_API_KEY",)
-    assert settings.output_dir_configured is True
 
 
 def test_app_settings_load_defaults_from_environment(tmp_path, monkeypatch):
@@ -46,8 +48,7 @@ def test_app_settings_allow_server_start_without_local_config(monkeypatch):
 
     settings = app_settings_from_env()
 
-    assert settings.missing_required == ("ELEVENLABS_API_KEY", "ONEDRIVE_AUDIO_DIR")
-    assert settings.output_dir_configured is False
+    assert settings.missing_required == ("ELEVENLABS_API_KEY",)
     assert str(settings.config.output_dir) == "generated"
 
 
@@ -101,6 +102,53 @@ def test_build_generation_payload_omits_api_key(tmp_path):
         "download_url": "/downloads/lesson.mp3",
         "preview_url": "/downloads/lesson.mp3",
         "segments": 2,
+    }
+
+
+def test_build_config_payload_uses_direct_response_storage(tmp_path):
+    settings = app_settings_from_env(
+        {
+            "ELEVENLABS_API_KEY": "secret-key",
+            "ONEDRIVE_AUDIO_DIR": str(tmp_path),
+            "ELEVENLABS_DEFAULT_VOICE_ID": "voice-1",
+        }
+    )
+
+    assert build_config_payload(settings) == {
+        "default_model_id": "eleven_multilingual_v2",
+        "has_default_voice": True,
+        "storage_mode": "direct_response",
+        "missing_required": [],
+    }
+
+
+def test_generate_audio_from_body_returns_streamable_audio(tmp_path):
+    class FakeTtsClient:
+        def synthesize(self, **kwargs):
+            return f"audio:{kwargs['text']}".encode("utf-8")
+
+    settings = app_settings_from_env(
+        {
+            "ELEVENLABS_API_KEY": "secret-key",
+            "ONEDRIVE_AUDIO_DIR": str(tmp_path / "missing"),
+            "ELEVENLABS_DEFAULT_VOICE_ID": "voice-1",
+        }
+    )
+
+    generated = generate_audio_from_body(
+        {"text": "Bonjour.\n\nSalut.", "title": "Lecon", "pause_ms": 0},
+        settings=settings,
+        tts_client=FakeTtsClient(),
+    )
+
+    assert generated.audio == b"audio:Bonjour.audio:Salut."
+    assert generated.filename == "lecon.mp3"
+    assert generated.segments == 2
+    assert audio_response_headers(generated) == {
+        "content-type": "audio/mpeg",
+        "content-length": "26",
+        "content-disposition": 'attachment; filename="lecon.mp3"',
+        "x-audiobook-segments": "2",
     }
 
 

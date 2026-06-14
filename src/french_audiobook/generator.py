@@ -49,6 +49,13 @@ class GenerationResult:
     segments: int
 
 
+@dataclass(frozen=True)
+class GeneratedAudio:
+    audio: bytes
+    filename: str
+    segments: int
+
+
 class AudiobookGenerator:
     def __init__(self, *, config: AudiobookConfig, tts_client: TtsClient) -> None:
         self._config = config
@@ -64,12 +71,38 @@ class AudiobookGenerator:
         pause_ms: int = 500,
         voice_settings: dict[str, float] | None = None,
     ) -> GenerationResult:
+        generated = self.generate_audio(
+            text,
+            title=title,
+            voice_id=voice_id,
+            model_id=model_id,
+            pause_ms=pause_ms,
+            voice_settings=voice_settings,
+        )
+        output_dir = self._validated_output_dir()
+        filename = unique_mp3_path(output_dir, Path(generated.filename).stem)
+        filename.write_bytes(generated.audio)
+        return GenerationResult(
+            path=filename,
+            download_url=f"/downloads/{quote(filename.name)}",
+            segments=generated.segments,
+        )
+
+    def generate_audio(
+        self,
+        text: str,
+        *,
+        title: str | None = None,
+        voice_id: str | None = None,
+        model_id: str | None = None,
+        pause_ms: int = 500,
+        voice_settings: dict[str, float] | None = None,
+    ) -> GeneratedAudio:
         segments = split_text_segments(text)
         if not segments:
             raise ValueError("French text is required.")
 
-        output_dir = self._validated_output_dir()
-        filename = unique_mp3_path(output_dir, slugify(title or segments[0]))
+        filename = f"{slugify(title or segments[0])}.mp3"
         selected_voice_id = (voice_id or self._config.default_voice_id).strip()
         selected_model_id = (model_id or self._config.default_model_id).strip()
 
@@ -86,10 +119,9 @@ class AudiobookGenerator:
             for segment in segments
         ]
 
-        filename.write_bytes(join_audio_parts(audio_parts, pause_ms=pause_ms))
-        return GenerationResult(
-            path=filename,
-            download_url=f"/downloads/{quote(filename.name)}",
+        return GeneratedAudio(
+            audio=join_audio_parts(audio_parts, pause_ms=pause_ms),
+            filename=filename,
             segments=len(segments),
         )
 

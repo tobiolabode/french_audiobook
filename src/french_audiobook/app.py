@@ -15,12 +15,13 @@ from french_audiobook.generator import (
     AudiobookConfig,
     AudiobookGenerator,
     DEFAULT_MODEL_ID,
+    GeneratedAudio,
     GenerationResult,
     OutputDirectoryError,
 )
 
 
-STATIC_DIR = Path(__file__).with_name("static")
+STATIC_DIR = Path(__file__).resolve().parents[2] / "dist"
 ENV_FILE = Path.cwd() / ".env"
 
 
@@ -32,7 +33,6 @@ class AppConfigError(RuntimeError):
 class AppSettings:
     config: AudiobookConfig
     missing_required: tuple[str, ...] = ()
-    output_dir_configured: bool = True
 
 
 def load_env_file(path: Path = ENV_FILE, env: dict[str, str] | None = None) -> None:
@@ -56,7 +56,7 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
         load_env_file()
     values = env or os.environ
     api_key = values.get("ELEVENLABS_API_KEY", "").strip()
-    output_dir_value = values.get("ONEDRIVE_AUDIO_DIR", "").strip()
+    output_dir_value = values.get("ONEDRIVE_AUDIO_DIR", "").strip() or "generated"
     voice_id = values.get("ELEVENLABS_DEFAULT_VOICE_ID", "").strip()
     model_id = values.get("ELEVENLABS_DEFAULT_MODEL_ID", DEFAULT_MODEL_ID).strip() or DEFAULT_MODEL_ID
 
@@ -64,7 +64,6 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
         name
         for name, value in {
             "ELEVENLABS_API_KEY": api_key,
-            "ONEDRIVE_AUDIO_DIR": output_dir_value,
         }.items()
         if not value
     ]
@@ -72,12 +71,11 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
     return AppSettings(
         config=AudiobookConfig(
             api_key=api_key,
-            output_dir=Path(output_dir_value or "generated"),
+            output_dir=Path(output_dir_value),
             default_voice_id=voice_id,
             default_model_id=model_id,
         ),
         missing_required=tuple(missing),
-        output_dir_configured=bool(output_dir_value),
     )
 
 
@@ -95,6 +93,61 @@ def missing_generation_config(settings: AppSettings, *, voice_id: str | None = N
     if not (voice_id or settings.config.default_voice_id).strip():
         missing.append("ELEVENLABS_DEFAULT_VOICE_ID or voice_id")
     return missing
+
+
+def build_config_payload(settings: AppSettings) -> dict[str, Any]:
+    return {
+        "default_model_id": settings.config.default_model_id,
+        "has_default_voice": bool(settings.config.default_voice_id),
+        "storage_mode": "direct_response",
+        "missing_required": list(settings.missing_required),
+    }
+
+
+def parse_json_body(raw: bytes) -> dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except (JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError("Request body must be valid JSON.") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("Request body must be a JSON object.")
+    return parsed
+
+
+def generate_audio_from_body(
+    body: dict[str, Any],
+    *,
+    settings: AppSettings,
+    tts_client: ElevenLabsClient | None = None,
+) -> GeneratedAudio:
+    missing = missing_generation_config(settings, voice_id=body.get("voice_id") or None)
+    if missing:
+        raise AppConfigError(f"Missing required configuration: {', '.join(missing)}")
+
+    generator = AudiobookGenerator(
+        config=settings.config,
+        tts_client=tts_client or ElevenLabsClient(),
+    )
+    return generator.generate_audio(
+        body.get("text", ""),
+        title=body.get("title"),
+        voice_id=body.get("voice_id") or None,
+        model_id=body.get("model_id") or None,
+        pause_ms=_int_from_body(body, "pause_ms", 500),
+        voice_settings=_voice_settings_from_body(body),
+    )
+
+
+def audio_response_headers(generated: GeneratedAudio) -> dict[str, str]:
+    safe_filename = generated.filename.replace('"', "")
+    return {
+        "content-type": "audio/mpeg",
+        "content-length": str(len(generated.audio)),
+        "content-disposition": f'attachment; filename="{safe_filename}"',
+        "x-audiobook-segments": str(generated.segments),
+    }
 
 
 def resolve_download_path(output_dir: Path, requested_name: str) -> Path:
@@ -117,21 +170,7 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
 
         try:
             body = self._read_json_body()
-            missing = missing_generation_config(self._settings, voice_id=body.get("voice_id") or None)
-            if missing:
-                raise AppConfigError(f"Missing required configuration: {', '.join(missing)}")
-            generator = AudiobookGenerator(
-                config=self._settings.config,
-                tts_client=ElevenLabsClient(),
-            )
-            result = generator.generate(
-                body.get("text", ""),
-                title=body.get("title"),
-                voice_id=body.get("voice_id") or None,
-                model_id=body.get("model_id") or None,
-                pause_ms=_int_from_body(body, "pause_ms", 500),
-                voice_settings=_voice_settings_from_body(body),
-            )
+            result = generate_audio_from_body(body, settings=self._settings)
         except (ValueError, OutputDirectoryError, ElevenLabsError) as exc:
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
             return
@@ -139,39 +178,22 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
             self._send_json({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
-        self._send_json(build_generation_payload(result), status=HTTPStatus.CREATED)
+        self.send_response(HTTPStatus.CREATED)
+        for key, value in audio_response_headers(result).items():
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(result.audio)
 
     def do_GET(self) -> None:
         if self.path == "/api/config":
-            self._send_json(
-                {
-                    "default_model_id": self._settings.config.default_model_id,
-                    "has_default_voice": bool(self._settings.config.default_voice_id),
-                    "output_dir": str(self._settings.config.output_dir)
-                    if self._settings.output_dir_configured
-                    else "",
-                    "missing_required": list(self._settings.missing_required),
-                },
-                status=HTTPStatus.OK,
-            )
-            return
-        if self.path.startswith("/downloads/"):
-            self._serve_download(self.path.removeprefix("/downloads/"))
+            self._send_json(build_config_payload(self._settings), status=HTTPStatus.OK)
             return
         super().do_GET()
 
     def _read_json_body(self) -> dict[str, Any]:
         length = int(self.headers.get("content-length", "0"))
         raw = self.rfile.read(length)
-        if not raw:
-            return {}
-        try:
-            parsed = json.loads(raw.decode("utf-8"))
-        except (JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError("Request body must be valid JSON.") from exc
-        if not isinstance(parsed, dict):
-            raise ValueError("Request body must be a JSON object.")
-        return parsed
+        return parse_json_body(raw)
 
     def _serve_download(self, requested_name: str) -> None:
         try:

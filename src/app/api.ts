@@ -1,7 +1,7 @@
 export type AppConfig = {
   default_model_id: string;
   has_default_voice: boolean;
-  output_dir: string;
+  storage_mode: "direct_response";
   missing_required: string[];
 };
 
@@ -18,9 +18,8 @@ export type GeneratePayload = {
 };
 
 export type GenerationResult = {
-  path: string;
-  download_url: string;
-  preview_url: string;
+  audio: Blob;
+  filename: string;
   segments: number;
 };
 
@@ -47,5 +46,22 @@ export async function generateAudiobook(payload: GeneratePayload): Promise<Gener
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return readJson<GenerationResult>(response);
+  if (!response.ok) {
+    const errorPayload = (await response.json().catch(() => ({}))) as ApiErrorPayload;
+    throw new Error(errorPayload.error || "The request failed.");
+  }
+
+  return {
+    audio: await response.blob(),
+    filename: filenameFromContentDisposition(response.headers.get("content-disposition")),
+    segments: Number(response.headers.get("x-audiobook-segments") || "0"),
+  };
+}
+
+function filenameFromContentDisposition(value: string | null): string {
+  if (!value) {
+    return "french-audiobook.mp3";
+  }
+  const match = /filename="?([^";]+)"?/i.exec(value);
+  return match?.[1] || "french-audiobook.mp3";
 }

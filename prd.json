@@ -17,9 +17,11 @@
   ],
   "architecture_notes": [
     "The React app should own the interactive browser experience: text entry, title/voice/model controls, generation state, preview, download, and errors.",
-    "The backend boundary should continue to own validation, ElevenLabs request shape, output directory validation, filename sanitization, file writing, preview, and download serving.",
+    "The backend boundary should continue to own validation, ElevenLabs request shape, filename sanitization, and direct MP3 response streaming; local file writing remains a legacy helper path.",
     "The project may either keep the current Python generation modules behind an HTTP API or wrap them from a React-focused dev stack, but browser code must never call ElevenLabs directly with a secret key.",
-    "Vercel deployment remains a future architecture task unless storage is redesigned away from direct local OneDrive writes."
+    "Vercel deployment remains a future architecture task unless storage is redesigned away from direct local OneDrive writes.",
+    "Vercel production should publish the Vite `dist` directory and handle `/api/config` plus `/api/generate` through Python Serverless Functions.",
+    "Generated MP3s should stream directly from the generation response unless durable object storage is explicitly added later."
   ],
   "tasks": [
     {
@@ -217,6 +219,48 @@
         "progress.txt"
       ],
       "notes": "PowerShell resolves npm/npx through executable shims in `C:\\Users\\tnint\\tools`; UNC WSL workspaces are routed to the repo-local Linux Node v22.12.0 under ignored `.tools/`, and package scripts invoke TypeScript tooling through Node entrypoints."
+    },
+    {
+      "id": "T008",
+      "title": "Prepare app for Vercel web deployment",
+      "description": "Refactor the React and Python app shape so Vercel can publish the frontend as a static Vite app and run generation through serverless Python API functions without local persistent audio storage.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T002",
+        "T003"
+      ],
+      "acceptance_criteria": [
+        "Vite builds to the standard `dist` output directory used by Vercel.",
+        "`vercel.json` defines the build output and API routing needed for a Vite SPA with Python functions.",
+        "`/api/config` and `/api/generate` exist as Vercel function entrypoints.",
+        "`/api/generate` returns the generated MP3 directly instead of writing to or serving from a durable local directory.",
+        "The React app previews and downloads generated audio from a browser object URL.",
+        "Vercel deployment requirements are documented.",
+        "The untracked `.venv/` directory is ignored."
+      ],
+      "test_plan": [
+        "Run backend tests covering storage-free generation and API response helpers.",
+        "Run frontend tests covering streamed MP3 preview and download.",
+        "Run the Vite production build.",
+        "Validate `prd.json` and `vercel.json` parse as JSON.",
+        "Run Python compile checks for source, tests, and API functions."
+      ],
+      "files_expected_to_change": [
+        ".env.example",
+        ".gitignore",
+        "README.md",
+        "api/",
+        "src/app/",
+        "src/french_audiobook/",
+        "tests/",
+        "vercel.json",
+        "requirements.txt",
+        "vite.config.ts",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Created from the Vercel audit findings: persistent Python HTTP server, dev-proxy-only API routes, local MP3 storage, nonstandard build output, missing Vercel docs/config, and unignored `.venv/`."
     }
   ],
   "completion_criteria": [

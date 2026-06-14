@@ -168,3 +168,29 @@ Notes:
 - Plain `node --version` in PowerShell still resolves the Windows Node shim; npm-launched commands now use the WSL-local Node 22 when the current directory is the WSL UNC workspace.
 - The existing untracked `.venv/` directory was left untouched.
 - `git push` was rejected by the safety reviewer because it is an external write to the GitHub `main` branch.
+
+## 2026-06-14 21:29 - main
+
+Task: T008 Prepare app for Vercel web deployment
+Summary:
+- Added Vercel Python function entrypoints for `/api/config` and `/api/generate`.
+- Refactored generation so the web API streams the MP3 response directly instead of writing audio to local persistent storage.
+- Updated the React app to preview/download generated audio from browser object URLs.
+- Switched Vite output to `dist`, added `vercel.json`, added `requirements.txt`, and removed the stale checked-in static bundle.
+- Documented Vercel environment variables and ignored `.venv/`.
+
+Tests:
+- `npm test`: passed, 1 test file and 3 tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests\test_generator.py tests\test_app.py`: passed, 17 tests.
+- `npm run build`: passed, Vite built `dist`.
+- `C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json`: passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool vercel.json`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: no
+
+Notes:
+- Real ElevenLabs generation was not exercised because no API key was used in this run.
+- A push will be attempted after committing; prior pushes from this environment have been rejected by the safety reviewer.

@@ -5,17 +5,24 @@ import { App } from "../../src/app/App";
 describe("App", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => "blob:generated-audio"),
+        revokeObjectURL: vi.fn(),
+      }),
+    );
   });
 
   it("shows the audiobook generation workflow on the first screen", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
-        JSON.stringify({
-          default_model_id: "eleven_multilingual_v2",
-          has_default_voice: true,
-          output_dir: "C:/Users/Tobi/OneDrive/French",
-          missing_required: [],
-        }),
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            has_default_voice: true,
+            storage_mode: "direct_response",
+            missing_required: [],
+          }),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
@@ -35,11 +42,11 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /generate mp3/i })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText("Saving to C:/Users/Tobi/OneDrive/French")).toBeInTheDocument();
+      expect(screen.getByText("Generated MP3s stream directly to this browser.")).toBeInTheDocument();
     });
   });
 
-  it("posts form values and displays preview, download, and metadata", async () => {
+  it("posts form values and displays streamed preview, download, and metadata", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     fetchMock
       .mockResolvedValueOnce(
@@ -47,22 +54,21 @@ describe("App", () => {
           JSON.stringify({
             default_model_id: "eleven_multilingual_v2",
             has_default_voice: true,
-            output_dir: "C:/Audio",
+            storage_mode: "direct_response",
             missing_required: [],
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            path: "C:/Audio/lecon.mp3",
-            download_url: "/downloads/lecon.mp3",
-            preview_url: "/downloads/lecon.mp3",
-            segments: 2,
-          }),
-          { status: 201, headers: { "content-type": "application/json" } },
-        ),
+        new Response(new Blob(["mp3"], { type: "audio/mpeg" }), {
+          status: 201,
+          headers: {
+            "content-type": "audio/mpeg",
+            "content-disposition": 'attachment; filename="lecon.mp3"',
+            "x-audiobook-segments": "2",
+          },
+        }),
       );
 
     render(<App />);
@@ -85,21 +91,24 @@ describe("App", () => {
     });
 
     expect(await screen.findByText("Generated successfully.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Generated audio preview")).toHaveAttribute("src", "/downloads/lecon.mp3");
-    expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("href", "/downloads/lecon.mp3");
-    expect(screen.getByText("C:/Audio/lecon.mp3")).toBeInTheDocument();
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Generated audio preview")).toHaveAttribute("src", "blob:generated-audio");
+    expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("href", "blob:generated-audio");
+    expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("download", "lecon.mp3");
+    expect(screen.getByText("lecon.mp3")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
   it("shows missing local settings and keeps generation disabled", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
-        JSON.stringify({
-          default_model_id: "eleven_multilingual_v2",
-          has_default_voice: false,
-          output_dir: "",
-          missing_required: ["ELEVENLABS_API_KEY", "ONEDRIVE_AUDIO_DIR"],
-        }),
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            has_default_voice: false,
+            output_dir: "",
+            storage_mode: "direct_response",
+            missing_required: ["ELEVENLABS_API_KEY"],
+          }),
         { status: 200, headers: { "content-type": "application/json" } },
       ),
     );
@@ -108,7 +117,7 @@ describe("App", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Set ELEVENLABS_API_KEY, ONEDRIVE_AUDIO_DIR in .env to enable generation."),
+        screen.getByText("Set ELEVENLABS_API_KEY in .env to enable generation."),
       ).toBeInTheDocument();
     });
     expect(screen.getByLabelText("Voice ID")).toBeRequired();

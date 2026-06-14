@@ -51,6 +51,30 @@ def test_generator_writes_mp3_and_returns_metadata(tmp_path):
     assert client.calls[0]["voice_settings"] == {"stability": 0.5, "speed": 0.95}
 
 
+def test_generator_can_return_audio_without_persistent_storage(tmp_path):
+    client = FakeTtsClient()
+    missing_dir = tmp_path / "missing"
+    config = AudiobookConfig(
+        api_key="secret-key",
+        output_dir=missing_dir,
+        default_voice_id="voice-1",
+        default_model_id="eleven_multilingual_v2",
+    )
+    generator = AudiobookGenerator(config=config, tts_client=client)
+
+    result = generator.generate_audio(
+        "Bonjour.\n\nComment ca va?",
+        title="Lecon 1: Salutations!",
+        pause_ms=750,
+        voice_settings={"stability": 0.5},
+    )
+
+    assert result.filename == "lecon-1-salutations.mp3"
+    assert result.audio == b"audio:Bonjour.\n\naudio:Comment ca va?"
+    assert result.segments == 2
+    assert not missing_dir.exists()
+
+
 def test_generator_uses_custom_voice_and_model(tmp_path):
     client = FakeTtsClient()
     generator = AudiobookGenerator(config=make_config(tmp_path), tts_client=client)

@@ -23,6 +23,11 @@ type FormState = {
   style: number;
 };
 
+type DisplayResult = Omit<GenerationResult, "audio"> & {
+  previewUrl: string;
+  downloadUrl: string;
+};
+
 const initialForm: FormState = {
   title: "",
   text: "",
@@ -46,7 +51,7 @@ export function App() {
   const [configError, setConfigError] = useState("");
   const [status, setStatus] = useState("Ready.");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [result, setResult] = useState<DisplayResult | null>(null);
 
   const wordCount = useMemo(() => {
     return form.text.trim().split(/\s+/).filter(Boolean).length;
@@ -76,6 +81,14 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (result) {
+        URL.revokeObjectURL(result.previewUrl);
+      }
+    };
+  }, [result]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsGenerating(true);
@@ -94,7 +107,13 @@ export function App() {
         similarity_boost: form.similarity,
         style: form.style,
       });
-      setResult(nextResult);
+      const audioUrl = URL.createObjectURL(nextResult.audio);
+      setResult({
+        filename: nextResult.filename,
+        segments: nextResult.segments,
+        previewUrl: audioUrl,
+        downloadUrl: audioUrl,
+      });
       setStatus("Generated successfully.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Generation failed.");
@@ -107,7 +126,7 @@ export function App() {
     ? config.missing_required.length > 0
       ? `Set ${config.missing_required.join(", ")} in .env to enable generation.`
       : config.has_default_voice
-        ? `Saving to ${config.output_dir}`
+        ? "Generated MP3s stream directly to this browser."
         : "Enter a Voice ID or set ELEVENLABS_DEFAULT_VOICE_ID."
     : configError || "Checking local config...";
   const needsVoiceId = Boolean(config && !config.has_default_voice);
@@ -254,18 +273,16 @@ export function App() {
 
           {result ? (
             <>
-              <audio aria-label="Generated audio preview" controls src={result.preview_url} />
-              <a className="download-link" href={result.download_url} download>
+              <audio aria-label="Generated audio preview" controls src={result.previewUrl} />
+              <a className="download-link" href={result.downloadUrl} download={result.filename}>
                 <Download size={18} aria-hidden="true" />
                 Download MP3
               </a>
               <dl className="metadata">
-                <dt>Saved path</dt>
-                <dd>{result.path}</dd>
+                <dt>Filename</dt>
+                <dd>{result.filename}</dd>
                 <dt>Segments</dt>
                 <dd>{result.segments}</dd>
-                <dt>Preview URL</dt>
-                <dd>{result.preview_url}</dd>
               </dl>
             </>
           ) : (
