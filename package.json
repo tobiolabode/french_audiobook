@@ -1,9 +1,9 @@
 {
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "dev": "node node_modules/vite/bin/vite.js --host 127.0.0.1",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/vitest.mjs run",
+    "test:watch": "node scripts/vitest.mjs"
   },
   "dependencies": {
     "react": "^19.2.3",

@@ -186,6 +186,37 @@
         "progress.txt"
       ],
       "notes": "Installed Node.js v22.12.0 under the ignored `.tools/nodejs` directory, added node/npm/npx shims to `C:\\Users\\tnint\\tools`, installed frontend dependencies, generated package-lock.json, and verified npm test/build."
+    },
+    {
+      "id": "T007",
+      "title": "Make npm scripts reliable from Windows PowerShell UNC workspaces",
+      "description": "Fix the Windows command path so TypeScript npm scripts can run from the shared WSL UNC workspace without cmd.exe changing the working directory to C:\\Windows.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T006"
+      ],
+      "acceptance_criteria": [
+        "`npm --version` succeeds from the UNC workspace.",
+        "`npx --version` succeeds from the UNC workspace.",
+        "`npm test` succeeds from the UNC workspace.",
+        "`npm run build` succeeds from the UNC workspace.",
+        "The package scripts avoid Windows .cmd bin shims for TypeScript tooling."
+      ],
+      "test_plan": [
+        "Run `node --version`.",
+        "Run `npm --version`.",
+        "Run `npx --version`.",
+        "Run `npm test`.",
+        "Run `npm run build`."
+      ],
+      "files_expected_to_change": [
+        "package.json",
+        "scripts/",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "PowerShell resolves npm/npx through executable shims in `C:\\Users\\tnint\\tools`; UNC WSL workspaces are routed to the repo-local Linux Node v22.12.0 under ignored `.tools/`, and package scripts invoke TypeScript tooling through Node entrypoints."
     }
   ],
   "completion_criteria": [

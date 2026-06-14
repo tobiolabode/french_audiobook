@@ -142,3 +142,29 @@ Notes:
 - An attempted HKCU PATH update with `setx` reported success but did not persist in this sandbox. The command shims in `C:\Users\tnint\tools` make `node`, `npm`, and `npx` work here.
 - Python pytest remains a separate tooling task; Node/npm are fixed.
 - `git push` failed in the sandbox due GitHub network access, then the escalated push request was rejected by the safety review.
+
+## 2026-06-14 20:24 - main
+
+Task: T007 Make npm scripts reliable from Windows PowerShell UNC workspaces
+Summary:
+- Added repo scripts that invoke TypeScript, Vite, and Vitest through Node entrypoints instead of Windows `.cmd` package-bin shims.
+- Set Vitest to the `threads` pool to avoid fork-worker file errors on WSL-backed workspaces.
+- Installed repo-local Linux Node.js v22.12.0 under ignored `.tools/` and rebuilt the user `npm.exe`/`npx.exe` shims in `C:\Users\tnint\tools` so PowerShell commands from `\\wsl.localhost\Ubuntu\...` route into Ubuntu with Node 22 first in PATH.
+- Reinstalled frontend dependencies through the WSL-routed npm shim.
+
+Tests:
+- `npm --version`: passed, 10.9.0.
+- `npx --version`: passed, 10.9.0.
+- `npm exec -- node --version`: passed, v22.12.0.
+- `npm test`: passed, 1 test file and 3 tests.
+- `npm run build`: passed.
+- `npm run dev -- --help`: passed without starting a persistent server.
+
+Git:
+- Commit: this commit
+- Pushed: no
+
+Notes:
+- Plain `node --version` in PowerShell still resolves the Windows Node shim; npm-launched commands now use the WSL-local Node 22 when the current directory is the WSL UNC workspace.
+- The existing untracked `.venv/` directory was left untouched.
+- `git push` was rejected by the safety reviewer because it is an external write to the GitHub `main` branch.
