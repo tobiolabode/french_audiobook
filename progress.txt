@@ -212,8 +212,8 @@ Tests:
 - Fetch `https://frenchaudiobook.vercel.app/api/config`: passed, HTTP 200 JSON; reports missing `ELEVENLABS_API_KEY`.
 
 Git:
-- Commit: not committed yet
-- Pushed: no
+- Commit: 4c84273
+- Pushed: yes
 
 Notes:
 - Production URL: https://frenchaudiobook.vercel.app
