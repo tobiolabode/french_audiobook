@@ -291,6 +291,32 @@
         "progress.txt"
       ],
       "notes": "New Vercel project `french_audiobook` was created and production deployment `dpl_GLXqZFNN6feYCAFHMae6xaL2Lp9J` reached READY. First CLI deploy linked the project but failed before build because local toolchain folders exceeded Vercel's 100 MB file upload limit; `.vercelignore` fixed the upload. Runtime generation still requires adding `ELEVENLABS_API_KEY` in Vercel."
+    },
+    {
+      "id": "T010",
+      "title": "Add ElevenLabs API key to Vercel production",
+      "description": "Store the ElevenLabs API key in Vercel's encrypted production environment variables and redeploy so the live API can generate audio.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T009"
+      ],
+      "acceptance_criteria": [
+        "`ELEVENLABS_API_KEY` is added to the Vercel production environment without committing the secret.",
+        "Production is redeployed after the environment variable is added.",
+        "`/api/config` no longer reports `ELEVENLABS_API_KEY` as missing.",
+        "Progress notes record the deployment ID and verification results without storing the secret value."
+      ],
+      "test_plan": [
+        "Run `vercel env add ELEVENLABS_API_KEY production`.",
+        "Run `vercel deploy --prod --yes`.",
+        "Fetch `https://frenchaudiobook.vercel.app/api/config` and verify `missing_required` is empty."
+      ],
+      "files_expected_to_change": [
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Production deployment `dpl_F86FQPhjbqHS7CuzK8G4Kcbp7qvD` reached READY after adding the encrypted Vercel environment variable. The secret value is intentionally not recorded in repository files."
     }
   ],
   "completion_criteria": [

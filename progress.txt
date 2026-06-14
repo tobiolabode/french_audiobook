@@ -38,8 +38,8 @@ Tests:
 - Cursor bundled Node JSON parse for package/tsconfig files: passed.
 
 Git:
-- Commit: not committed yet
-- Pushed: no
+- Commit: 6cab4b0
+- Pushed: yes
 
 Notes:
 - `git branch --show-current` and `git status --short` failed because this folder is not currently inside a git repository.
@@ -222,3 +222,25 @@ Notes:
 - Project ID: `prj_1qmKvAzpnety1bH4ty1OYSkKJkLP`
 - Org/team ID: `team_LJ5JsjzJz0dZRP6jMpX0ZvuY`
 - Local `.env` did not expose ElevenLabs key names, so no Vercel runtime secrets were synced in this session.
+
+## 2026-06-14 23:00 - main
+
+Task: T010 Add ElevenLabs API key to Vercel production
+Summary:
+- Added `ELEVENLABS_API_KEY` to the Vercel production environment for project `french_audiobook`.
+- Redeployed production so the serverless functions can read the new encrypted environment variable.
+- Verified the production config endpoint no longer reports missing required settings.
+
+Tests:
+- `npx vercel@latest env add ELEVENLABS_API_KEY production --yes`: passed; value supplied through stdin and not written to the repository.
+- `npx vercel@latest deploy --prod --yes`: passed; deployment `dpl_F86FQPhjbqHS7CuzK8G4Kcbp7qvD` reached READY.
+- Fetch `https://frenchaudiobook.vercel.app/api/config`: passed, HTTP 200 JSON with `missing_required: []`.
+- Vercel deployment listing: passed, latest deployment is READY and target is production.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- Secret value is intentionally not recorded in repository files or progress notes.
+- `has_default_voice` remains false, so users still need to enter a Voice ID in the form unless `ELEVENLABS_DEFAULT_VOICE_ID` is added later.
