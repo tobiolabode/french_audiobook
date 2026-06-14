@@ -10,8 +10,8 @@ Tests:
 - `Get-Content prd.json -Raw | ConvertFrom-Json | Out-Null; Write-Output "prd.json valid"`: passed.
 
 Git:
-- Commit: not committed yet
-- Pushed: no
+- Commit: fb09d16
+- Pushed: yes
 
 Notes:
 - `git branch --show-current` and `git status --short` failed because this folder is not currently inside a git repository.
