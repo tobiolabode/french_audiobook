@@ -298,3 +298,20 @@ Notes:
 - In-app browser verification was attempted, but the browser helper failed because the Windows sandbox helper executable is missing in this environment.
 - The local dev API and Vite servers were stopped after HTTP verification.
 - Publishing this fix to the live Vercel app still requires explicit approval to push/deploy external changes.
+
+## 2026-06-15 00:36 - main
+
+Task: T011/T012 sync approved
+Summary:
+- User explicitly approved committing and syncing the local button/default-voice fixes to the repository.
+- Marked T011 and T012 done in the PRD now that external push approval is available.
+
+Tests:
+- Not rerun for docs-only status update; previous T011/T012 test results remain current.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- This entry records the approval/sync bookkeeping only; code changes are in commits `586977e` and `4f86c76`.

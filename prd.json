@@ -322,7 +322,7 @@
       "id": "T011",
       "title": "Fix Generate MP3 button state and add generation logs",
       "description": "Make the Generate MP3 button usable when the app only needs a Voice ID, remove the misleading loading cursor from non-busy disabled states, and add safe client/server logs for generation debugging.",
-      "status": "blocked",
+      "status": "done",
       "priority": "high",
       "dependencies": [
         "T010"
@@ -351,13 +351,13 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "The screenshot showed a disabled Generate MP3 button while `has_default_voice` was false. The UI now leaves the button enabled when only Voice ID input is missing so native required-field validation can guide the user. Implementation is committed locally; completion is blocked only on explicit approval to push to the external GitHub remote."
+      "notes": "The screenshot showed a disabled Generate MP3 button while `has_default_voice` was false. The UI now leaves the button enabled when only Voice ID input is missing so native required-field validation can guide the user."
     },
     {
       "id": "T012",
       "title": "Use default voice ID and unblock MP3 download flow",
       "description": "Configure a built-in default ElevenLabs voice ID, expose it through non-secret config, and populate the React Voice ID field so users do not need to type it before generating and downloading MP3 files.",
-      "status": "blocked",
+      "status": "done",
       "priority": "high",
       "dependencies": [
         "T011"
@@ -391,7 +391,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "Implementation and tests are passing locally. Completion remains blocked until the local commits can be pushed/deployed to the external GitHub/Vercel production path with explicit user approval."
+      "notes": "Implementation and tests are passing locally. The default voice ID is non-secret and can still be overridden by environment variable."
     }
   ],
   "completion_criteria": [
