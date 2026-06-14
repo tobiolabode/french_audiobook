@@ -45,6 +45,8 @@ const sliderFormat = new Intl.NumberFormat("en", {
   maximumFractionDigits: 2,
 });
 
+const logPrefix = "[FrenchAudiobook]";
+
 export function App() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -94,6 +96,18 @@ export function App() {
     setIsGenerating(true);
     setResult(null);
     setStatus("Generating audio...");
+    console.info(`${logPrefix} Generate MP3 submitted`, {
+      titleProvided: Boolean(form.title.trim()),
+      textLength: form.text.length,
+      wordCount,
+      voiceProvided: Boolean(form.voiceId.trim()),
+      modelId: form.modelId,
+      pauseMs: form.pauseMs,
+      speed: form.speed,
+      stability: form.stability,
+      similarity: form.similarity,
+      style: form.style,
+    });
 
     try {
       const nextResult = await generateAudiobook({
@@ -115,10 +129,17 @@ export function App() {
         downloadUrl: audioUrl,
       });
       setStatus("Generated successfully.");
+      console.info(`${logPrefix} MP3 ready`, {
+        filename: nextResult.filename,
+        segments: nextResult.segments,
+        bytes: nextResult.audio.size,
+      });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Generation failed.");
+      console.error(`${logPrefix} Generate MP3 failed`, error);
     } finally {
       setIsGenerating(false);
+      console.info(`${logPrefix} Generate MP3 finished`);
     }
   }
 
@@ -131,7 +152,7 @@ export function App() {
     : configError || "Checking local config...";
   const needsVoiceId = Boolean(config && !config.has_default_voice);
   const missingServerConfig = Boolean(config && config.missing_required.length > 0);
-  const canGenerate = Boolean(config) && !missingServerConfig && (!needsVoiceId || Boolean(form.voiceId.trim()));
+  const canGenerate = Boolean(config) && !missingServerConfig;
 
   return (
     <main className="app-shell">
@@ -253,9 +274,15 @@ export function App() {
               />
             </fieldset>
 
-            <button className="primary-action" type="submit" disabled={isGenerating || !canGenerate}>
+            <button
+              aria-busy={isGenerating}
+              className="primary-action"
+              data-generating={isGenerating ? "true" : "false"}
+              type="submit"
+              disabled={isGenerating || !canGenerate}
+            >
               {isGenerating ? <LoaderCircle className="spin" size={20} /> : <FileAudio size={20} />}
-              Generate MP3
+              {isGenerating ? "Generating MP3" : "Generate MP3"}
             </button>
           </form>
         </div>

@@ -23,6 +23,7 @@ from french_audiobook.generator import (
 
 STATIC_DIR = Path(__file__).resolve().parents[2] / "dist"
 ENV_FILE = Path.cwd() / ".env"
+LOG_PREFIX = "[FrenchAudiobook]"
 
 
 class AppConfigError(RuntimeError):
@@ -170,14 +171,28 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
 
         try:
             body = self._read_json_body()
+            print(
+                f"{LOG_PREFIX} /api/generate request "
+                f"text_length={len(str(body.get('text', '')))} "
+                f"title_provided={bool(str(body.get('title', '')).strip())} "
+                f"voice_provided={bool(str(body.get('voice_id', '')).strip())}",
+                flush=True,
+            )
             result = generate_audio_from_body(body, settings=self._settings)
         except (ValueError, OutputDirectoryError, ElevenLabsError) as exc:
+            print(f"{LOG_PREFIX} /api/generate rejected: {exc}", flush=True)
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
             return
         except AppConfigError as exc:
+            print(f"{LOG_PREFIX} /api/generate config error: {exc}", flush=True)
             self._send_json({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        print(
+            f"{LOG_PREFIX} /api/generate success "
+            f"filename={result.filename} segments={result.segments} bytes={len(result.audio)}",
+            flush=True,
+        )
         self.send_response(HTTPStatus.CREATED)
         for key, value in audio_response_headers(result).items():
             self.send_header(key, value)

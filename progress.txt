@@ -244,3 +244,28 @@ Git:
 Notes:
 - Secret value is intentionally not recorded in repository files or progress notes.
 - `has_default_voice` remains false, so users still need to enter a Voice ID in the form unless `ELEVENLABS_DEFAULT_VOICE_ID` is added later.
+
+## 2026-06-14 23:27 - main
+
+Task: T011 Fix Generate MP3 button state and add generation logs
+Summary:
+- Fixed the Generate MP3 disabled state so missing default voice configuration keeps the Voice ID field required but no longer makes the button look broken.
+- Changed disabled-button cursor styling so only active generation shows the loading cursor.
+- Added browser console logs for config loading and MP3 generation milestones.
+- Added sanitized server logs for generation request, success, validation error, and config error paths.
+- Added a frontend request timeout and response validation so a hung or non-MP3 response surfaces a clear error.
+
+Tests:
+- `npm test -- tests/app/App.test.tsx`: failed red first on the new missing-default-voice regression, then passed after implementation.
+- `npm test`: passed, 1 test file and 4 tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests\test_generator.py tests\test_app.py`: passed, 17 tests.
+- `C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `npm run build`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: no
+
+Notes:
+- Logs intentionally include lengths, status, filenames, segments, and byte counts, but not the ElevenLabs API key or full source text.
+- `git push` was rejected by the automated safety review because exporting code to the external GitHub remote needs explicit user approval.

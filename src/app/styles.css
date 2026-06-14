@@ -200,6 +200,10 @@ input[type="range"] {
 
 .primary-action:disabled {
   background: #7a9092;
+  cursor: not-allowed;
+}
+
+.primary-action[data-generating="true"] {
   cursor: wait;
 }
 

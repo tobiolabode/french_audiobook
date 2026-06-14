@@ -317,6 +317,41 @@
         "progress.txt"
       ],
       "notes": "Production deployment `dpl_F86FQPhjbqHS7CuzK8G4Kcbp7qvD` reached READY after adding the encrypted Vercel environment variable. The secret value is intentionally not recorded in repository files."
+    },
+    {
+      "id": "T011",
+      "title": "Fix Generate MP3 button state and add generation logs",
+      "description": "Make the Generate MP3 button usable when the app only needs a Voice ID, remove the misleading loading cursor from non-busy disabled states, and add safe client/server logs for generation debugging.",
+      "status": "blocked",
+      "priority": "high",
+      "dependencies": [
+        "T010"
+      ],
+      "acceptance_criteria": [
+        "The Generate MP3 button is enabled when server config is ready even if the user still needs to enter a required Voice ID.",
+        "Disabled buttons no longer show the loading cursor unless generation is actively running.",
+        "Generation requests cannot hang the UI indefinitely without surfacing a timeout error.",
+        "Browser console logs show config loading, generation request, response, success, and failure milestones without exposing secrets or full text.",
+        "Server logs show sanitized generation request, success, validation error, and config error details."
+      ],
+      "test_plan": [
+        "Add a frontend regression test for the missing-default-voice but ready-server-config state.",
+        "Run the frontend test suite.",
+        "Run backend pytest checks.",
+        "Run the production build.",
+        "Run Python compile checks."
+      ],
+      "files_expected_to_change": [
+        "api/generate.py",
+        "src/app/App.tsx",
+        "src/app/api.ts",
+        "src/app/styles.css",
+        "src/french_audiobook/app.py",
+        "tests/app/App.test.tsx",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "The screenshot showed a disabled Generate MP3 button while `has_default_voice` was false. The UI now leaves the button enabled when only Voice ID input is missing so native required-field validation can guide the user. Implementation is committed locally; completion is blocked only on explicit approval to push to the external GitHub remote."
     }
   ],
   "completion_criteria": [

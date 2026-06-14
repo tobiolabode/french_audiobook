@@ -123,4 +123,26 @@ describe("App", () => {
     expect(screen.getByLabelText("Voice ID")).toBeRequired();
     expect(screen.getByRole("button", { name: /generate mp3/i })).toBeDisabled();
   });
+
+  it("allows generation attempts when only the default voice is missing", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          default_model_id: "eleven_multilingual_v2",
+          has_default_voice: false,
+          storage_mode: "direct_response",
+          missing_required: [],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Enter a Voice ID or set ELEVENLABS_DEFAULT_VOICE_ID.")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Voice ID")).toBeRequired();
+    expect(screen.getByRole("button", { name: /generate mp3/i })).toBeEnabled();
+  });
 });
