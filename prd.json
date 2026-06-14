@@ -261,6 +261,36 @@
         "progress.txt"
       ],
       "notes": "Created from the Vercel audit findings: persistent Python HTTP server, dev-proxy-only API routes, local MP3 storage, nonstandard build output, missing Vercel docs/config, and unignored `.venv/`."
+    },
+    {
+      "id": "T009",
+      "title": "Deploy new Vercel project",
+      "description": "Create or link a new Vercel project for this repository and deploy the current Vercel-ready web app.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T008"
+      ],
+      "acceptance_criteria": [
+        "A Vercel deployment is created from the current repository state.",
+        "The deployment reaches READY status or the failure is diagnosed from deployment details/logs.",
+        "The deployment URL is recorded in progress notes.",
+        "Any required runtime environment variable gaps are documented.",
+        "Tracking files are updated, committed, and pushed."
+      ],
+      "test_plan": [
+        "Use the Vercel connector or CLI to deploy.",
+        "Inspect the resulting deployment status.",
+        "Fetch the deployed URL or otherwise verify the deployment is reachable.",
+        "Run local build/tests if deployment requires code changes."
+      ],
+      "files_expected_to_change": [
+        ".gitignore",
+        ".vercelignore",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "New Vercel project `french_audiobook` was created and production deployment `dpl_GLXqZFNN6feYCAFHMae6xaL2Lp9J` reached READY. First CLI deploy linked the project but failed before build because local toolchain folders exceeded Vercel's 100 MB file upload limit; `.vercelignore` fixed the upload. Runtime generation still requires adding `ELEVENLABS_API_KEY` in Vercel."
     }
   ],
   "completion_criteria": [

@@ -1,8 +1,8 @@
-.env
-.env.local
+.git/
+.vercel/
 .venv/
-node_modules/
 .tools/
+node_modules/
 dist/
 coverage/
 .vite/
@@ -13,4 +13,3 @@ __pycache__/
 *.egg-info/
 generated/
 *.mp3
-.vercel

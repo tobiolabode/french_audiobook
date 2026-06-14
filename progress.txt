@@ -194,3 +194,31 @@ Git:
 Notes:
 - Real ElevenLabs generation was not exercised because no API key was used in this run.
 - Pushed `main` to `origin`.
+
+## 2026-06-14 22:19 - main
+
+Task: T009 Deploy new Vercel project
+Summary:
+- Created/linked a new Vercel project named `french_audiobook`.
+- Connected the GitHub repository `tobiolabode/french_audiobook`.
+- Added `.vercelignore` after the first deploy attempt exceeded Vercel's 100 MB upload limit by including local toolchain folders.
+- Deployed the app to Vercel production.
+
+Tests:
+- `npx vercel@latest deploy --prod --yes`: first attempt failed with `File size limit exceeded (100 MB)`.
+- `npx vercel@latest deploy --prod --yes`: passed after `.vercelignore`; deployment reached READY.
+- Vercel project inspection: passed, latest deployment `dpl_GLXqZFNN6feYCAFHMae6xaL2Lp9J` is READY and target is production.
+- Fetch `https://frenchaudiobook.vercel.app`: passed, HTTP 200 with built Vite HTML.
+- Fetch `https://frenchaudiobook.vercel.app/api/config`: passed, HTTP 200 JSON; reports missing `ELEVENLABS_API_KEY`.
+
+Git:
+- Commit: not committed yet
+- Pushed: no
+
+Notes:
+- Production URL: https://frenchaudiobook.vercel.app
+- Unique deployment URL: https://frenchaudiobook-fxp2oup0h-tnint5r-gmailcoms-projects.vercel.app
+- Inspect URL: https://vercel.com/tnint5r-gmailcoms-projects/french_audiobook/GLXqZFNN6feYCAFHMae6xaL2Lp9J
+- Project ID: `prj_1qmKvAzpnety1bH4ty1OYSkKJkLP`
+- Org/team ID: `team_LJ5JsjzJz0dZRP6jMpX0ZvuY`
+- Local `.env` did not expose ElevenLabs key names, so no Vercel runtime secrets were synced in this session.
