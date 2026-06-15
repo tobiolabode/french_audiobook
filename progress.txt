@@ -238,8 +238,8 @@ Tests:
 - Vercel deployment listing: passed, latest deployment is READY and target is production.
 
 Git:
-- Commit: not committed yet
-- Pushed: no
+- Commit: this commit
+- Pushed: yes
 
 Notes:
 - Secret value is intentionally not recorded in repository files or progress notes.
@@ -315,3 +315,29 @@ Git:
 
 Notes:
 - This entry records the approval/sync bookkeeping only; code changes are in commits `586977e` and `4f86c76`.
+
+## 2026-06-15 01:46 - main
+
+Task: T013 Save generated MP3 files to OneDrive
+Summary:
+- Added Microsoft OAuth and Graph upload helpers using the Python standard library.
+- Added local and Vercel API routes for OneDrive auth status, start, callback, logout, and MP3 save.
+- Updated the React output panel to show Connect OneDrive or Save to OneDrive after generation when Microsoft auth is configured.
+- Documented the Microsoft app registration and Vercel environment variables needed for OneDrive save.
+
+Tests:
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests`: passed, 25 tests.
+- `PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node npm-cli.js test`: passed, 7 frontend tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `npm run build` with repo-local Node 22 from WSL: passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json` and `vercel.json`: passed.
+- `git diff --check`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: no
+
+Notes:
+- Plain PowerShell/UNC `npm test` still hits a Vite package-resolution issue, so verification used the repo-local Node 22 binary through a clean native WSL PATH.
+- OneDrive save requires `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI`, and `OAUTH_COOKIE_SECRET` in Vercel before the control appears in production.
+- `git push` was blocked by the approval safety reviewer pending explicit user approval of pushing local `main` to the configured GitHub remote.

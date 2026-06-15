@@ -392,6 +392,45 @@
         "progress.txt"
       ],
       "notes": "Implementation and tests are passing locally. The default voice ID is non-secret and can still be overridden by environment variable."
+    },
+    {
+      "id": "T013",
+      "title": "Save generated MP3 files to OneDrive",
+      "description": "Add Microsoft Graph delegated auth and a Save to OneDrive flow so a generated audiobook MP3 can be uploaded to the user's OneDrive folder from the deployed app.",
+      "status": "blocked",
+      "priority": "high",
+      "dependencies": [
+        "T012"
+      ],
+      "acceptance_criteria": [
+        "Config reports whether Microsoft OneDrive auth is configured without exposing client secrets.",
+        "The React output panel offers Save to OneDrive after a successful MP3 generation when OneDrive is configured.",
+        "Unauthenticated users are sent through Microsoft OAuth before saving.",
+        "Authenticated saves upload an audio/mpeg MP3 to a OneDrive folder through Microsoft Graph.",
+        "Expired OAuth tokens are refreshed when possible and stale auth produces a clear reconnect message.",
+        "OneDrive Graph helpers sanitize filenames and encode folder paths safely.",
+        "Documentation lists Microsoft app registration and Vercel environment variable requirements."
+      ],
+      "test_plan": [
+        "Add backend tests for OneDrive config readiness, auth URLs/cookies, token refresh, filename safety, Graph folder creation, and upload behavior.",
+        "Add frontend tests for Save to OneDrive visibility, redirect-to-auth behavior, and successful save status.",
+        "Run backend pytest checks.",
+        "Run frontend tests.",
+        "Run Python compile checks.",
+        "Run the production build."
+      ],
+      "files_expected_to_change": [
+        ".env.example",
+        "README.md",
+        "api/",
+        "src/app/",
+        "src/french_audiobook/",
+        "tests/",
+        "vercel.json",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Implementation is locally committed with standard-library Microsoft OAuth/Graph helpers, Vercel function entrypoints, local HTTP routes, React save/connect controls, regression tests, and docs. Push to origin/main is blocked until the user explicitly approves that external publication. The previous local-output `ONEDRIVE_AUDIO_DIR` setting does not save to the user's OneDrive in the deployed direct-response architecture."
     }
   ],
   "completion_criteria": [

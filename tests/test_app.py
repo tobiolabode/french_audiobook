@@ -110,6 +110,11 @@ def test_build_config_payload_uses_direct_response_storage(tmp_path):
             "ELEVENLABS_API_KEY": "secret-key",
             "ONEDRIVE_AUDIO_DIR": str(tmp_path),
             "ELEVENLABS_DEFAULT_VOICE_ID": "voice-1",
+            "MICROSOFT_CLIENT_ID": "client-id",
+            "MICROSOFT_CLIENT_SECRET": "client-secret",
+            "MICROSOFT_REDIRECT_URI": "https://example.test/api/auth/microsoft/callback",
+            "OAUTH_COOKIE_SECRET": "cookie-secret",
+            "MICROSOFT_ONEDRIVE_FOLDER_NAME": "Lessons",
         }
     )
 
@@ -118,6 +123,8 @@ def test_build_config_payload_uses_direct_response_storage(tmp_path):
         "default_voice_id": "voice-1",
         "has_default_voice": True,
         "storage_mode": "direct_response",
+        "onedrive_enabled": True,
+        "onedrive_folder_name": "Lessons",
         "missing_required": [],
     }
 

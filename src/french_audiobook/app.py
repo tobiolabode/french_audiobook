@@ -9,6 +9,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError
 from french_audiobook.generator import (
@@ -19,6 +20,25 @@ from french_audiobook.generator import (
     GeneratedAudio,
     GenerationResult,
     OutputDirectoryError,
+)
+from french_audiobook.onedrive import (
+    DRIVE_STATE_COOKIE,
+    DRIVE_TOKEN_COOKIE,
+    OneDriveConfig,
+    OneDriveError,
+    authorize_url,
+    cookie_header,
+    cookie_value_from_header,
+    enabled_from_env,
+    exchange_code_for_token,
+    expired_cookie_header,
+    is_secure_cookie,
+    new_oauth_state,
+    safe_drive_filename,
+    signed_cookie_dumps,
+    token_from_cookie_header,
+    upload_mp3_to_onedrive,
+    valid_access_token,
 )
 
 
@@ -34,6 +54,7 @@ class AppConfigError(RuntimeError):
 @dataclass(frozen=True)
 class AppSettings:
     config: AudiobookConfig
+    onedrive: OneDriveConfig
     missing_required: tuple[str, ...] = ()
 
 
@@ -77,6 +98,7 @@ def app_settings_from_env(env: dict[str, str] | None = None) -> AppSettings:
             default_voice_id=voice_id,
             default_model_id=model_id,
         ),
+        onedrive=enabled_from_env(values),
         missing_required=tuple(missing),
     )
 
@@ -103,6 +125,8 @@ def build_config_payload(settings: AppSettings) -> dict[str, Any]:
         "default_voice_id": settings.config.default_voice_id,
         "has_default_voice": bool(settings.config.default_voice_id),
         "storage_mode": "direct_response",
+        "onedrive_enabled": settings.onedrive.enabled,
+        "onedrive_folder_name": settings.onedrive.folder_name,
         "missing_required": list(settings.missing_required),
     }
 
@@ -153,6 +177,51 @@ def audio_response_headers(generated: GeneratedAudio) -> dict[str, str]:
     }
 
 
+def build_onedrive_status_payload(settings: AppSettings, cookie_header_value: str | None) -> dict[str, bool]:
+    return {
+        "enabled": settings.onedrive.enabled,
+        "connected": settings.onedrive.enabled
+        and token_from_cookie_header(settings.onedrive, cookie_header_value) is not None,
+    }
+
+
+def save_audio_to_onedrive_from_body(
+    body: dict[str, Any],
+    *,
+    settings: AppSettings,
+    cookie_header_value: str | None,
+    set_cookie: Any | None = None,
+    tts_client: ElevenLabsClient | None = None,
+) -> dict[str, Any]:
+    if not settings.onedrive.enabled:
+        raise OneDriveError("OneDrive auth is not configured.", status=503)
+
+    token = token_from_cookie_header(settings.onedrive, cookie_header_value)
+    if not token:
+        raise OneDriveError("OneDrive auth required.", status=401)
+
+    access_token, refreshed_token = valid_access_token(settings.onedrive, token)
+    generated = generate_audio_from_body(body, settings=settings, tts_client=tts_client)
+    filename = safe_drive_filename(str(body.get("filename") or generated.filename))
+    uploaded = upload_mp3_to_onedrive(settings.onedrive, access_token, filename, generated.audio)
+
+    if refreshed_token != token and set_cookie is not None:
+        set_cookie(
+            cookie_header(
+                DRIVE_TOKEN_COOKIE,
+                signed_cookie_dumps(refreshed_token, settings.onedrive.cookie_secret),
+                max_age=60 * 60 * 24 * 21,
+                secure=is_secure_cookie(),
+            )
+        )
+
+    return {
+        "id": uploaded.get("id"),
+        "name": uploaded.get("name", filename),
+        "webViewLink": uploaded.get("webUrl"),
+    }
+
+
 def resolve_download_path(output_dir: Path, requested_name: str) -> Path:
     root = output_dir.resolve()
     candidate = (root / Path(requested_name).name).resolve()
@@ -167,7 +236,19 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
     def do_POST(self) -> None:
-        if self.path != "/api/generate":
+        parsed_path = urlparse(self.path)
+        if parsed_path.path == "/api/auth/microsoft/logout":
+            self.send_response(HTTPStatus.NO_CONTENT)
+            self.send_header("Set-Cookie", expired_cookie_header(DRIVE_TOKEN_COOKIE, secure=is_secure_cookie()))
+            self.send_header("Set-Cookie", expired_cookie_header(DRIVE_STATE_COOKIE, secure=is_secure_cookie()))
+            self.end_headers()
+            return
+
+        if parsed_path.path == "/api/drive/save":
+            self._handle_onedrive_save()
+            return
+
+        if parsed_path.path != "/api/generate":
             self.send_error(HTTPStatus.NOT_FOUND)
             return
 
@@ -202,8 +283,21 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
         self.wfile.write(result.audio)
 
     def do_GET(self) -> None:
-        if self.path == "/api/config":
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/config":
             self._send_json(build_config_payload(self._settings), status=HTTPStatus.OK)
+            return
+        if parsed.path == "/api/auth/microsoft/status":
+            self._send_json(
+                build_onedrive_status_payload(self._settings, self.headers.get("cookie")),
+                status=HTTPStatus.OK,
+            )
+            return
+        if parsed.path == "/api/auth/microsoft/start":
+            self._handle_microsoft_start()
+            return
+        if parsed.path == "/api/auth/microsoft/callback":
+            self._handle_microsoft_callback(parsed.query)
             return
         super().do_GET()
 
@@ -226,11 +320,95 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(path.read_bytes())
 
-    def _send_json(self, payload: dict[str, Any], *, status: HTTPStatus) -> None:
+    def _handle_microsoft_start(self) -> None:
+        if not self._settings.onedrive.enabled:
+            self._send_json({"error": "OneDrive auth is not configured."}, status=HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        state = new_oauth_state()
+        self.send_response(HTTPStatus.FOUND)
+        self.send_header("Location", authorize_url(self._settings.onedrive, state=state))
+        self.send_header(
+            "Set-Cookie",
+            cookie_header(DRIVE_STATE_COOKIE, state, max_age=600, secure=is_secure_cookie()),
+        )
+        self.end_headers()
+
+    def _handle_microsoft_callback(self, query: str) -> None:
+        if not self._settings.onedrive.enabled:
+            self._send_json({"error": "OneDrive auth is not configured."}, status=HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+
+        params = parse_qs(query)
+        state = params.get("state", [""])[0]
+        code = params.get("code", [""])[0]
+        expected_state = cookie_value_from_header(self.headers.get("cookie"), DRIVE_STATE_COOKIE)
+        if not state or not expected_state or state != expected_state:
+            self._send_json({"error": "Invalid OAuth state."}, status=HTTPStatus.BAD_REQUEST)
+            return
+
+        try:
+            token = exchange_code_for_token(self._settings.onedrive, code)
+        except OneDriveError as exc:
+            self._send_json({"error": str(exc)}, status=HTTPStatus(exc.status))
+            return
+
+        self.send_response(HTTPStatus.FOUND)
+        self.send_header("Location", "/")
+        self.send_header(
+            "Set-Cookie",
+            cookie_header(
+                DRIVE_TOKEN_COOKIE,
+                signed_cookie_dumps(token, self._settings.onedrive.cookie_secret),
+                max_age=60 * 60 * 24 * 21,
+                secure=is_secure_cookie(),
+            ),
+        )
+        self.send_header("Set-Cookie", expired_cookie_header(DRIVE_STATE_COOKIE, secure=is_secure_cookie()))
+        self.end_headers()
+
+    def _handle_onedrive_save(self) -> None:
+        try:
+            body = self._read_json_body()
+            print(
+                f"{LOG_PREFIX} /api/drive/save request "
+                f"text_length={len(str(body.get('text', '')))} "
+                f"filename={safe_drive_filename(str(body.get('filename', '')))}",
+                flush=True,
+            )
+            set_cookies: list[str] = []
+            payload = save_audio_to_onedrive_from_body(
+                body,
+                settings=self._settings,
+                cookie_header_value=self.headers.get("cookie"),
+                set_cookie=set_cookies.append,
+            )
+        except (ValueError, OutputDirectoryError, ElevenLabsError, OneDriveError, AppConfigError) as exc:
+            status = getattr(exc, "status", HTTPStatus.BAD_REQUEST)
+            print(f"{LOG_PREFIX} /api/drive/save rejected: {exc}", flush=True)
+            self._send_json({"error": str(exc)}, status=HTTPStatus(status))
+            return
+
+        print(
+            f"{LOG_PREFIX} /api/drive/save success "
+            f"name={payload.get('name')} linked={bool(payload.get('webViewLink'))}",
+            flush=True,
+        )
+        self._send_json(payload, status=HTTPStatus.OK, set_cookies=set_cookies)
+
+    def _send_json(
+        self,
+        payload: dict[str, Any],
+        *,
+        status: HTTPStatus,
+        set_cookies: list[str] | None = None,
+    ) -> None:
         data = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(data)))
+        for value in set_cookies or []:
+            self.send_header("Set-Cookie", value)
         self.end_headers()
         self.wfile.write(data)
 

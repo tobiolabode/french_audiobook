@@ -22,6 +22,8 @@ describe("App", () => {
             default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
             has_default_voice: true,
             storage_mode: "direct_response",
+            onedrive_enabled: false,
+            onedrive_folder_name: "French Audiobook MP3",
             missing_required: [],
           }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -57,6 +59,8 @@ describe("App", () => {
             default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
             has_default_voice: true,
             storage_mode: "direct_response",
+            onedrive_enabled: false,
+            onedrive_folder_name: "French Audiobook MP3",
             missing_required: [],
           }),
           { status: 200, headers: { "content-type": "application/json" } },
@@ -112,6 +116,8 @@ describe("App", () => {
             default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
             has_default_voice: true,
             storage_mode: "direct_response",
+            onedrive_enabled: false,
+            onedrive_folder_name: "French Audiobook MP3",
             missing_required: [],
           }),
           { status: 200, headers: { "content-type": "application/json" } },
@@ -160,6 +166,8 @@ describe("App", () => {
             has_default_voice: false,
             output_dir: "",
             storage_mode: "direct_response",
+            onedrive_enabled: false,
+            onedrive_folder_name: "French Audiobook MP3",
             missing_required: ["ELEVENLABS_API_KEY"],
           }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -185,6 +193,8 @@ describe("App", () => {
           default_voice_id: "",
           has_default_voice: false,
           storage_mode: "direct_response",
+          onedrive_enabled: false,
+          onedrive_folder_name: "French Audiobook MP3",
           missing_required: [],
         }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -198,5 +208,107 @@ describe("App", () => {
     });
     expect(screen.getByLabelText("Voice ID")).toBeRequired();
     expect(screen.getByRole("button", { name: /generate mp3/i })).toBeEnabled();
+  });
+
+  it("offers Microsoft auth after generation when OneDrive is configured but disconnected", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
+            has_default_voice: true,
+            storage_mode: "direct_response",
+            onedrive_enabled: true,
+            onedrive_folder_name: "French Audiobook MP3",
+            missing_required: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ enabled: true, connected: false }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(new Blob(["mp3"], { type: "audio/mpeg" }), {
+          status: 201,
+          headers: {
+            "content-type": "audio/mpeg",
+            "content-disposition": 'attachment; filename="onedrive.mp3"',
+            "x-audiobook-segments": "1",
+          },
+        }),
+      );
+
+    render(<App />);
+    await userEvent.type(screen.getByLabelText("French text"), "Bonjour.");
+    await userEvent.click(screen.getByRole("button", { name: /generate mp3/i }));
+
+    expect(await screen.findByRole("link", { name: "Connect OneDrive" })).toHaveAttribute(
+      "href",
+      "/api/auth/microsoft/start",
+    );
+  });
+
+  it("saves the generated request to OneDrive when connected", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
+            has_default_voice: true,
+            storage_mode: "direct_response",
+            onedrive_enabled: true,
+            onedrive_folder_name: "French Audiobook MP3",
+            missing_required: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ enabled: true, connected: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(new Blob(["mp3"], { type: "audio/mpeg" }), {
+          status: 201,
+          headers: {
+            "content-type": "audio/mpeg",
+            "content-disposition": 'attachment; filename="onedrive.mp3"',
+            "x-audiobook-segments": "1",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ name: "onedrive.mp3", webViewLink: "https://onedrive/file" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+    render(<App />);
+    await userEvent.type(screen.getByLabelText("Title"), "OneDrive");
+    await userEvent.type(screen.getByLabelText("French text"), "Bonjour.");
+    await userEvent.click(screen.getByRole("button", { name: /generate mp3/i }));
+    await userEvent.click(await screen.findByRole("button", { name: "Save to OneDrive" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/drive/save",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: expect.stringContaining('"filename":"onedrive.mp3"'),
+        }),
+      );
+    });
+    expect(await screen.findByText("Saved to OneDrive: onedrive.mp3")).toBeInTheDocument();
   });
 });

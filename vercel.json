@@ -4,6 +4,9 @@
   "functions": {
     "api/generate.py": {
       "maxDuration": 300
+    },
+    "api/drive/save.py": {
+      "maxDuration": 300
     }
   },
   "rewrites": [

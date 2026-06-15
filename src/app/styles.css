@@ -194,13 +194,19 @@ input[type="range"] {
   text-decoration: none;
 }
 
-.primary-action {
+.primary-action,
+.download-link {
   cursor: pointer;
 }
 
-.primary-action:disabled {
+.primary-action:disabled,
+.download-link:disabled {
   background: #7a9092;
   cursor: not-allowed;
+}
+
+.secondary-action {
+  background: #2e6b71;
 }
 
 .primary-action[data-generating="true"] {

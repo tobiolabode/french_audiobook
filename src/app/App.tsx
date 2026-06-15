@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AudioLines,
   CircleAlert,
+  CloudUpload,
   Download,
   FileAudio,
   Gauge,
@@ -9,7 +10,16 @@ import {
   Play,
   SlidersHorizontal,
 } from "lucide-react";
-import { generateAudiobook, getConfig, type AppConfig, type GenerationResult } from "./api";
+import {
+  generateAudiobook,
+  getConfig,
+  getOneDriveStatus,
+  saveToOneDrive,
+  type AppConfig,
+  type GeneratePayload,
+  type GenerationResult,
+  type OneDriveStatus,
+} from "./api";
 
 type FormState = {
   title: string;
@@ -26,6 +36,7 @@ type FormState = {
 type DisplayResult = Omit<GenerationResult, "audio"> & {
   previewUrl: string;
   downloadUrl: string;
+  payload: GeneratePayload;
 };
 
 const initialForm: FormState = {
@@ -53,7 +64,9 @@ export function App() {
   const [configError, setConfigError] = useState("");
   const [status, setStatus] = useState("Ready.");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingToOneDrive, setIsSavingToOneDrive] = useState(false);
   const [result, setResult] = useState<DisplayResult | null>(null);
+  const [oneDriveStatus, setOneDriveStatus] = useState<OneDriveStatus | null>(null);
 
   const wordCount = useMemo(() => {
     return form.text.trim().split(/\s+/).filter(Boolean).length;
@@ -85,6 +98,31 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!config?.onedrive_enabled) {
+      setOneDriveStatus(null);
+      return;
+    }
+
+    let isMounted = true;
+    getOneDriveStatus()
+      .then((status) => {
+        if (isMounted) {
+          setOneDriveStatus(status);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setOneDriveStatus({ enabled: false, connected: false });
+          console.error(`${logPrefix} OneDrive status request failed`, error);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [config?.onedrive_enabled]);
+
+  useEffect(() => {
     return () => {
       if (result) {
         URL.revokeObjectURL(result.previewUrl);
@@ -97,6 +135,7 @@ export function App() {
     setIsGenerating(true);
     setResult(null);
     setStatus("Generating audio...");
+    const payload = buildGeneratePayload(form);
     console.info(`${logPrefix} Generate MP3 submitted`, {
       titleProvided: Boolean(form.title.trim()),
       textLength: form.text.length,
@@ -111,23 +150,14 @@ export function App() {
     });
 
     try {
-      const nextResult = await generateAudiobook({
-        title: form.title,
-        text: form.text,
-        voice_id: form.voiceId,
-        model_id: form.modelId,
-        pause_ms: form.pauseMs,
-        speed: form.speed,
-        stability: form.stability,
-        similarity_boost: form.similarity,
-        style: form.style,
-      });
+      const nextResult = await generateAudiobook(payload);
       const audioUrl = URL.createObjectURL(nextResult.audio);
       setResult({
         filename: nextResult.filename,
         segments: nextResult.segments,
         previewUrl: audioUrl,
         downloadUrl: audioUrl,
+        payload,
       });
       setStatus("Generated successfully.");
       console.info(`${logPrefix} MP3 ready`, {
@@ -141,6 +171,29 @@ export function App() {
     } finally {
       setIsGenerating(false);
       console.info(`${logPrefix} Generate MP3 finished`);
+    }
+  }
+
+  async function handleSaveToOneDrive() {
+    if (!result) {
+      return;
+    }
+
+    setIsSavingToOneDrive(true);
+    setStatus("Saving to OneDrive...");
+    try {
+      const saved = await saveToOneDrive({ ...result.payload, filename: result.filename });
+      setStatus(`Saved to OneDrive: ${saved.name}`);
+      setOneDriveStatus({ enabled: true, connected: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "OneDrive save failed.";
+      if (message.toLowerCase().includes("auth")) {
+        setOneDriveStatus({ enabled: true, connected: false });
+      }
+      setStatus(message);
+      console.error(`${logPrefix} OneDrive save failed`, error);
+    } finally {
+      setIsSavingToOneDrive(false);
     }
   }
 
@@ -306,6 +359,28 @@ export function App() {
                 <Download size={18} aria-hidden="true" />
                 Download MP3
               </a>
+              {config?.onedrive_enabled ? (
+                oneDriveStatus?.connected ? (
+                  <button
+                    className="download-link secondary-action"
+                    type="button"
+                    onClick={handleSaveToOneDrive}
+                    disabled={isSavingToOneDrive}
+                  >
+                    {isSavingToOneDrive ? (
+                      <LoaderCircle className="spin" size={18} aria-hidden="true" />
+                    ) : (
+                      <CloudUpload size={18} aria-hidden="true" />
+                    )}
+                    {isSavingToOneDrive ? "Saving to OneDrive" : "Save to OneDrive"}
+                  </button>
+                ) : (
+                  <a className="download-link secondary-action" href="/api/auth/microsoft/start">
+                    <CloudUpload size={18} aria-hidden="true" />
+                    Connect OneDrive
+                  </a>
+                )
+              ) : null}
               <dl className="metadata">
                 <dt>Filename</dt>
                 <dd>{result.filename}</dd>
@@ -323,6 +398,20 @@ export function App() {
       </section>
     </main>
   );
+}
+
+function buildGeneratePayload(form: FormState): GeneratePayload {
+  return {
+    title: form.title,
+    text: form.text,
+    voice_id: form.voiceId,
+    model_id: form.modelId,
+    pause_ms: form.pauseMs,
+    speed: form.speed,
+    stability: form.stability,
+    similarity_boost: form.similarity,
+    style: form.style,
+  };
 }
 
 type RangeFieldProps = {

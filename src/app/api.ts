@@ -3,6 +3,8 @@ export type AppConfig = {
   default_voice_id: string;
   has_default_voice: boolean;
   storage_mode: "direct_response";
+  onedrive_enabled: boolean;
+  onedrive_folder_name: string;
   missing_required: string[];
 };
 
@@ -22,6 +24,17 @@ export type GenerationResult = {
   audio: Blob;
   filename: string;
   segments: number;
+};
+
+export type OneDriveStatus = {
+  enabled: boolean;
+  connected: boolean;
+};
+
+export type OneDriveSaveResult = {
+  id?: string;
+  name: string;
+  webViewLink?: string;
 };
 
 type ApiErrorPayload = {
@@ -49,6 +62,7 @@ export async function getConfig(): Promise<AppConfig> {
       missingRequired: config.missing_required,
       storageMode: config.storage_mode,
       defaultVoiceProvided: Boolean(config.default_voice_id),
+      oneDriveEnabled: config.onedrive_enabled,
     });
     return config;
   } catch (error) {
@@ -113,6 +127,32 @@ export async function generateAudiobook(payload: GeneratePayload): Promise<Gener
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
+
+export async function getOneDriveStatus(): Promise<OneDriveStatus> {
+  const response = await fetch("/api/auth/microsoft/status");
+  return readJson<OneDriveStatus>(response);
+}
+
+export async function saveToOneDrive(
+  payload: GeneratePayload & { filename: string },
+): Promise<OneDriveSaveResult> {
+  console.info(`${logPrefix} Starting OneDrive save request`, {
+    filename: payload.filename,
+    titleProvided: Boolean(payload.title.trim()),
+    textLength: payload.text.length,
+  });
+  const response = await fetch("/api/drive/save", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await readJson<OneDriveSaveResult>(response);
+  console.info(`${logPrefix} OneDrive save response received`, {
+    name: result.name,
+    linked: Boolean(result.webViewLink),
+  });
+  return result;
 }
 
 function filenameFromContentDisposition(value: string | null): string {

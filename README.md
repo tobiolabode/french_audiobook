@@ -18,6 +18,12 @@ ELEVENLABS_API_KEY=
 ELEVENLABS_DEFAULT_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
 ELEVENLABS_DEFAULT_MODEL_ID=eleven_multilingual_v2
 ONEDRIVE_AUDIO_DIR=
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=
+MICROSOFT_TENANT=consumers
+MICROSOFT_ONEDRIVE_FOLDER_NAME=French Audiobook MP3
+OAUTH_COOKIE_SECRET=
 HOST=127.0.0.1
 PORT=8000
 ```
@@ -25,6 +31,27 @@ PORT=8000
 The browser app never receives `ELEVENLABS_API_KEY`; generation stays behind the Python API. The app can start without the key and will show which settings are missing, but generating real audio requires `ELEVENLABS_API_KEY`. `ELEVENLABS_DEFAULT_VOICE_ID` defaults to a known working voice ID and can be overridden from `.env` or Vercel if you prefer a different voice.
 
 Generated MP3s are streamed directly back from `/api/generate`. The deployed app does not write generated audio to Vercel's filesystem and does not need a `/downloads` route.
+
+## OneDrive Save
+
+OneDrive save uses Microsoft Graph delegated auth. Create a Microsoft app registration that supports personal Microsoft accounts, add this web redirect URI, and grant delegated `Files.ReadWrite` plus `offline_access`:
+
+```text
+https://frenchaudiobook.vercel.app/api/auth/microsoft/callback
+```
+
+Set these additional environment variables in Vercel production:
+
+```env
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=https://frenchaudiobook.vercel.app/api/auth/microsoft/callback
+MICROSOFT_TENANT=consumers
+MICROSOFT_ONEDRIVE_FOLDER_NAME=French Audiobook MP3
+OAUTH_COOKIE_SECRET=
+```
+
+`OAUTH_COOKIE_SECRET` should be a long random value. When these values are present, the app shows a OneDrive action after MP3 generation. If the browser is not connected yet, it sends the user through Microsoft OAuth; after connection, Save to OneDrive uploads an `audio/mpeg` file into the configured OneDrive folder.
 
 ## Local Development
 
@@ -59,6 +86,8 @@ This repository is configured as a Vite static app with Python Serverless Functi
 - `vercel.json` runs `npm run build` and publishes `dist`.
 - `/api/config` reports non-secret runtime readiness.
 - `/api/generate` calls ElevenLabs server-side and returns an `audio/mpeg` response directly.
+- `/api/auth/microsoft/*` handles OneDrive OAuth.
+- `/api/drive/save` regenerates the requested MP3 server-side and uploads it to OneDrive with Microsoft Graph.
 
 Set these environment variables in the Vercel project:
 
@@ -66,6 +95,12 @@ Set these environment variables in the Vercel project:
 ELEVENLABS_API_KEY=
 ELEVENLABS_DEFAULT_VOICE_ID=JBFqnCBsd6RMkjVDRZzb
 ELEVENLABS_DEFAULT_MODEL_ID=eleven_multilingual_v2
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=https://frenchaudiobook.vercel.app/api/auth/microsoft/callback
+MICROSOFT_TENANT=consumers
+MICROSOFT_ONEDRIVE_FOLDER_NAME=French Audiobook MP3
+OAUTH_COOKIE_SECRET=
 ```
 
 `ONEDRIVE_AUDIO_DIR` is not required on Vercel. It is only used by the Python generator's legacy local file-writing method.
