@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from email import policy
+from email.parser import BytesParser
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -56,6 +58,12 @@ class AppSettings:
     config: AudiobookConfig
     onedrive: OneDriveConfig
     missing_required: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class UploadedAudio:
+    audio: bytes
+    filename: str
 
 
 def load_env_file(path: Path = ENV_FILE, env: dict[str, str] | None = None) -> None:
@@ -185,13 +193,40 @@ def build_onedrive_status_payload(settings: AppSettings, cookie_header_value: st
     }
 
 
-def save_audio_to_onedrive_from_body(
-    body: dict[str, Any],
+def parse_multipart_audio_upload(raw: bytes, content_type: str) -> UploadedAudio:
+    if not content_type.lower().startswith("multipart/form-data"):
+        raise ValueError("OneDrive save expects a generated MP3 upload.")
+
+    message = BytesParser(policy=policy.default).parsebytes(
+        f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8") + raw
+    )
+    if not message.is_multipart():
+        raise ValueError("OneDrive save expects multipart form data.")
+
+    filename = ""
+    audio = b""
+    for part in message.iter_parts():
+        if part.get_content_disposition() != "form-data":
+            continue
+        field_name = part.get_param("name", header="content-disposition")
+        if field_name == "filename":
+            filename = part.get_content().strip()
+        elif field_name == "audio":
+            audio = part.get_payload(decode=True) or b""
+            filename = filename or part.get_filename() or ""
+
+    if not audio:
+        raise ValueError("OneDrive save did not receive an MP3 file.")
+    return UploadedAudio(audio=audio, filename=safe_drive_filename(filename))
+
+
+def save_uploaded_audio_to_onedrive(
+    audio: bytes,
     *,
+    filename: str,
     settings: AppSettings,
     cookie_header_value: str | None,
     set_cookie: Any | None = None,
-    tts_client: ElevenLabsClient | None = None,
 ) -> dict[str, Any]:
     if not settings.onedrive.enabled:
         raise OneDriveError("OneDrive auth is not configured.", status=503)
@@ -201,9 +236,8 @@ def save_audio_to_onedrive_from_body(
         raise OneDriveError("OneDrive auth required.", status=401)
 
     access_token, refreshed_token = valid_access_token(settings.onedrive, token)
-    generated = generate_audio_from_body(body, settings=settings, tts_client=tts_client)
-    filename = safe_drive_filename(str(body.get("filename") or generated.filename))
-    uploaded = upload_mp3_to_onedrive(settings.onedrive, access_token, filename, generated.audio)
+    safe_filename = safe_drive_filename(filename)
+    uploaded = upload_mp3_to_onedrive(settings.onedrive, access_token, safe_filename, audio)
 
     if refreshed_token != token and set_cookie is not None:
         set_cookie(
@@ -217,7 +251,7 @@ def save_audio_to_onedrive_from_body(
 
     return {
         "id": uploaded.get("id"),
-        "name": uploaded.get("name", filename),
+        "name": uploaded.get("name", safe_filename),
         "webViewLink": uploaded.get("webUrl"),
     }
 
@@ -369,16 +403,16 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
 
     def _handle_onedrive_save(self) -> None:
         try:
-            body = self._read_json_body()
+            upload = self._read_audio_upload()
             print(
                 f"{LOG_PREFIX} /api/drive/save request "
-                f"text_length={len(str(body.get('text', '')))} "
-                f"filename={safe_drive_filename(str(body.get('filename', '')))}",
+                f"filename={upload.filename} bytes={len(upload.audio)}",
                 flush=True,
             )
             set_cookies: list[str] = []
-            payload = save_audio_to_onedrive_from_body(
-                body,
+            payload = save_uploaded_audio_to_onedrive(
+                upload.audio,
+                filename=upload.filename,
                 settings=self._settings,
                 cookie_header_value=self.headers.get("cookie"),
                 set_cookie=set_cookies.append,
@@ -395,6 +429,11 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
             flush=True,
         )
         self._send_json(payload, status=HTTPStatus.OK, set_cookies=set_cookies)
+
+    def _read_audio_upload(self) -> UploadedAudio:
+        length = int(self.headers.get("content-length", "0"))
+        raw = self.rfile.read(length)
+        return parse_multipart_audio_upload(raw, self.headers.get("content-type", ""))
 
     def _send_json(
         self,

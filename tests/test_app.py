@@ -13,9 +13,12 @@ from french_audiobook.app import (
     generate_audio_from_body,
     load_env_file,
     missing_generation_config,
+    parse_multipart_audio_upload,
     resolve_download_path,
+    save_uploaded_audio_to_onedrive,
     _voice_settings_from_body,
 )
+from french_audiobook.onedrive import DRIVE_TOKEN_COOKIE, signed_cookie_dumps
 from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError
 
 
@@ -156,6 +159,73 @@ def test_generate_audio_from_body_returns_streamable_audio(tmp_path):
         "content-length": "26",
         "content-disposition": 'attachment; filename="lecon.mp3"',
         "x-audiobook-segments": "2",
+    }
+
+
+def test_parse_multipart_audio_upload_reads_generated_mp3_blob():
+    boundary = "----audiobook-boundary"
+    raw = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="filename"\r\n\r\n'
+        "Lecon 1.mp3\r\n"
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="audio"; filename="ignored.mp3"\r\n'
+        "Content-Type: audio/mpeg\r\n\r\n"
+    ).encode("utf-8") + b"mp3-bytes\r\n" + f"--{boundary}--\r\n".encode("utf-8")
+
+    upload = parse_multipart_audio_upload(raw, f"multipart/form-data; boundary={boundary}")
+
+    assert upload.filename == "lecon-1.mp3"
+    assert upload.audio == b"mp3-bytes"
+
+
+def test_save_uploaded_audio_to_onedrive_does_not_call_elevenlabs(monkeypatch, tmp_path):
+    settings = app_settings_from_env(
+        {
+            "ELEVENLABS_API_KEY": "stale-elevenlabs-key",
+            "ONEDRIVE_AUDIO_DIR": str(tmp_path),
+            "MICROSOFT_CLIENT_ID": "client-id",
+            "MICROSOFT_CLIENT_SECRET": "client-secret",
+            "MICROSOFT_REDIRECT_URI": "https://example.test/callback",
+            "OAUTH_COOKIE_SECRET": "cookie-secret",
+        }
+    )
+    token = {
+        "access_token": "graph-token",
+        "refresh_token": "refresh-token",
+        "expires_at": 9999999999,
+    }
+    cookie = f"{DRIVE_TOKEN_COOKIE}={signed_cookie_dumps(token, 'cookie-secret')}"
+    uploaded = {}
+
+    def fail_if_tts_runs(*args, **kwargs):
+        raise AssertionError("Save to OneDrive should upload the generated MP3 without synthesizing again.")
+
+    def fake_upload(config, access_token, filename, mp3_data):
+        uploaded["access_token"] = access_token
+        uploaded["filename"] = filename
+        uploaded["mp3_data"] = mp3_data
+        return {"id": "file-id", "name": filename, "webUrl": "https://onedrive/file"}
+
+    monkeypatch.setattr("french_audiobook.app.generate_audio_from_body", fail_if_tts_runs)
+    monkeypatch.setattr("french_audiobook.app.upload_mp3_to_onedrive", fake_upload)
+
+    result = save_uploaded_audio_to_onedrive(
+        b"already-generated-mp3",
+        filename="Lecon Existing.mp3",
+        settings=settings,
+        cookie_header_value=cookie,
+    )
+
+    assert result == {
+        "id": "file-id",
+        "name": "lecon-existing.mp3",
+        "webViewLink": "https://onedrive/file",
+    }
+    assert uploaded == {
+        "access_token": "graph-token",
+        "filename": "lecon-existing.mp3",
+        "mp3_data": b"already-generated-mp3",
     }
 
 

@@ -50,7 +50,7 @@
       "id": "T002",
       "title": "Choose React app stack and scaffold shell",
       "description": "Pick the React project structure that best fits this repository, then add the initial app shell with the main audiobook generation workflow visible on the first screen.",
-      "status": "blocked",
+      "status": "done",
       "priority": "high",
       "dependencies": [
         "T001"
@@ -430,7 +430,43 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "Implementation is locally committed with standard-library Microsoft OAuth/Graph helpers, Vercel function entrypoints, local HTTP routes, React save/connect controls, regression tests, and docs. Push to origin/main is blocked until the user explicitly approves that external publication. The previous local-output `ONEDRIVE_AUDIO_DIR` setting does not save to the user's OneDrive in the deployed direct-response architecture."
+      "notes": "Implemented and deployed with standard-library Microsoft OAuth/Graph helpers, Vercel function entrypoints, local HTTP routes, React save/connect controls, regression tests, docs, and production Microsoft OAuth env vars. The previous local-output `ONEDRIVE_AUDIO_DIR` setting does not save to the user's OneDrive in the deployed direct-response architecture."
+    },
+    {
+      "id": "T014",
+      "title": "Upload existing generated MP3 to OneDrive",
+      "description": "Fix Save to OneDrive so it uploads the MP3 blob already generated in the browser instead of re-running ElevenLabs synthesis on the save endpoint.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T013"
+      ],
+      "acceptance_criteria": [
+        "The React Save to OneDrive request sends the generated MP3 blob and filename to `/api/drive/save`.",
+        "`/api/drive/save` accepts the uploaded MP3 bytes and uploads them to Microsoft Graph without calling ElevenLabs.",
+        "A stale or invalid ElevenLabs key cannot make OneDrive save fail after a successful browser MP3 generation.",
+        "OneDrive save still requires Microsoft auth and refreshes Microsoft tokens when needed.",
+        "Regression tests cover frontend blob upload and backend no-resynthesis behavior."
+      ],
+      "test_plan": [
+        "Add a backend regression test that fails if OneDrive save calls the TTS client.",
+        "Add a frontend regression test that verifies Save to OneDrive posts multipart/form-data with the generated audio blob.",
+        "Run backend pytest checks.",
+        "Run frontend tests.",
+        "Run Python compile checks.",
+        "Run the production build."
+      ],
+      "files_expected_to_change": [
+        "api/drive/save.py",
+        "src/app/App.tsx",
+        "src/app/api.ts",
+        "src/french_audiobook/app.py",
+        "tests/app/App.test.tsx",
+        "tests/test_app.py",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Implemented by posting the browser-held MP3 blob as multipart/form-data to `/api/drive/save`; the backend now parses the upload and sends those bytes to Microsoft Graph without calling ElevenLabs."
     }
   ],
   "completion_criteria": [

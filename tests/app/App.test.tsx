@@ -253,7 +253,7 @@ describe("App", () => {
     );
   });
 
-  it("saves the generated request to OneDrive when connected", async () => {
+  it("saves the already-generated MP3 blob to OneDrive when connected", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     fetchMock
       .mockResolvedValueOnce(
@@ -304,11 +304,16 @@ describe("App", () => {
         "/api/drive/save",
         expect.objectContaining({
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: expect.stringContaining('"filename":"onedrive.mp3"'),
         }),
       );
     });
+    const saveRequest = fetchMock.mock.calls.at(-1)?.[1] as RequestInit;
+    expect(saveRequest.headers).toBeUndefined();
+    expect(saveRequest.body).toBeInstanceOf(FormData);
+    const formData = saveRequest.body as FormData;
+    expect(formData.get("filename")).toBe("onedrive.mp3");
+    expect(formData.get("audio")).toBeInstanceOf(Blob);
+    expect((formData.get("audio") as Blob).type).toBe("audio/mpeg");
     expect(await screen.findByText("Saved to OneDrive: onedrive.mp3")).toBeInTheDocument();
   });
 });

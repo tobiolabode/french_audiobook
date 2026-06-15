@@ -14,8 +14,8 @@ if str(SRC) not in sys.path:
 from french_audiobook.app import (
     AppConfigError,
     app_settings_from_env,
-    parse_json_body,
-    save_audio_to_onedrive_from_body,
+    parse_multipart_audio_upload,
+    save_uploaded_audio_to_onedrive,
 )
 from french_audiobook.elevenlabs import ElevenLabsError
 from french_audiobook.onedrive import OneDriveError
@@ -28,16 +28,19 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         try:
             length = int(self.headers.get("content-length", "0"))
-            body = parse_json_body(self.rfile.read(length))
+            upload = parse_multipart_audio_upload(
+                self.rfile.read(length),
+                self.headers.get("content-type", ""),
+            )
             print(
                 f"{LOG_PREFIX} /api/drive/save request "
-                f"text_length={len(str(body.get('text', '')))} "
-                f"filename={str(body.get('filename', ''))[:80]}",
+                f"filename={upload.filename} bytes={len(upload.audio)}",
                 flush=True,
             )
             set_cookies: list[str] = []
-            payload = save_audio_to_onedrive_from_body(
-                body,
+            payload = save_uploaded_audio_to_onedrive(
+                upload.audio,
+                filename=upload.filename,
                 settings=app_settings_from_env(),
                 cookie_header_value=self.headers.get("cookie"),
                 set_cookie=set_cookies.append,

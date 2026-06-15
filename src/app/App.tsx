@@ -34,6 +34,7 @@ type FormState = {
 };
 
 type DisplayResult = Omit<GenerationResult, "audio"> & {
+  audio: Blob;
   previewUrl: string;
   downloadUrl: string;
   payload: GeneratePayload;
@@ -153,6 +154,7 @@ export function App() {
       const nextResult = await generateAudiobook(payload);
       const audioUrl = URL.createObjectURL(nextResult.audio);
       setResult({
+        audio: nextResult.audio,
         filename: nextResult.filename,
         segments: nextResult.segments,
         previewUrl: audioUrl,
@@ -182,7 +184,7 @@ export function App() {
     setIsSavingToOneDrive(true);
     setStatus("Saving to OneDrive...");
     try {
-      const saved = await saveToOneDrive({ ...result.payload, filename: result.filename });
+      const saved = await saveToOneDrive(result.audio, result.filename);
       setStatus(`Saved to OneDrive: ${saved.name}`);
       setOneDriveStatus({ enabled: true, connected: true });
     } catch (error) {

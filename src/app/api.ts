@@ -134,18 +134,19 @@ export async function getOneDriveStatus(): Promise<OneDriveStatus> {
   return readJson<OneDriveStatus>(response);
 }
 
-export async function saveToOneDrive(
-  payload: GeneratePayload & { filename: string },
-): Promise<OneDriveSaveResult> {
+export async function saveToOneDrive(audio: Blob, filename: string): Promise<OneDriveSaveResult> {
   console.info(`${logPrefix} Starting OneDrive save request`, {
-    filename: payload.filename,
-    titleProvided: Boolean(payload.title.trim()),
-    textLength: payload.text.length,
+    filename,
+    bytes: audio.size,
   });
+  const uploadAudio = new Blob([audio], { type: audio.type || "audio/mpeg" });
+  const formData = new FormData();
+  formData.append("filename", filename);
+  formData.append("audio", uploadAudio, filename);
+
   const response = await fetch("/api/drive/save", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
+    body: formData,
   });
   const result = await readJson<OneDriveSaveResult>(response);
   console.info(`${logPrefix} OneDrive save response received`, {

@@ -341,3 +341,26 @@ Notes:
 - Plain PowerShell/UNC `npm test` still hits a Vite package-resolution issue, so verification used the repo-local Node 22 binary through a clean native WSL PATH.
 - OneDrive save requires `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI`, and `OAUTH_COOKIE_SECRET` in Vercel before the control appears in production.
 - `git push` was blocked by the approval safety reviewer pending explicit user approval of pushing local `main` to the configured GitHub remote.
+
+## 2026-06-16 00:39 - main
+
+Task: T014 Upload existing generated MP3 to OneDrive
+Summary:
+- Changed Save to OneDrive to post the already-generated browser MP3 blob as multipart form data.
+- Updated `/api/drive/save` and the local handler to parse uploaded MP3 bytes and upload them to Microsoft Graph without re-running ElevenLabs.
+- Added regression tests proving the save helper does not call ElevenLabs and the frontend sends FormData with the audio blob.
+- Marked the previous OneDrive implementation task done now that the approved push and production env setup are complete.
+
+Tests:
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests`: passed, 27 tests.
+- `PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node npm-cli.js test`: passed, 7 frontend tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `npm run build` with repo-local Node 22 from WSL: passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json` and `vercel.json`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- This fixes the reported production symptom where OneDrive save failed with an ElevenLabs 401 even though the MP3 had already been generated and was playable in the browser.
