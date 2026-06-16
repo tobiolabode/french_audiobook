@@ -8,5 +8,6 @@ export default defineConfig({
     globals: true,
     pool: "threads",
     setupFiles: ["./src/app/test/setup.ts"],
+    exclude: ["node_modules/**", "dist/**", "tests/e2e/**"],
   },
 });

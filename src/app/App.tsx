@@ -20,6 +20,7 @@ import {
   type GenerationResult,
   type OneDriveStatus,
 } from "./api";
+import { loadStoredGeneration, storeGeneration } from "./generatedAudioStore";
 
 type FormState = {
   title: string;
@@ -99,6 +100,45 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    loadStoredGeneration()
+      .then((stored) => {
+        if (!isMounted || !stored) {
+          return;
+        }
+        const audioUrl = URL.createObjectURL(stored.audio);
+        setResult({
+          audio: stored.audio,
+          filename: stored.filename,
+          segments: stored.segments,
+          previewUrl: audioUrl,
+          downloadUrl: audioUrl,
+          payload: stored.payload,
+        });
+        setForm((current) => ({
+          ...current,
+          title: stored.payload.title || current.title,
+          text: stored.payload.text || current.text,
+          voiceId: stored.payload.voice_id || current.voiceId,
+          modelId: stored.payload.model_id || current.modelId,
+          pauseMs: stored.payload.pause_ms,
+          speed: stored.payload.speed,
+          stability: stored.payload.stability,
+          similarity: stored.payload.similarity_boost,
+          style: stored.payload.style,
+        }));
+        setStatus("Restored generated audio.");
+      })
+      .catch((error) => {
+        console.warn(`${logPrefix} Stored MP3 restore skipped`, error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!config?.onedrive_enabled) {
       setOneDriveStatus(null);
       return;
@@ -160,6 +200,14 @@ export function App() {
         previewUrl: audioUrl,
         downloadUrl: audioUrl,
         payload,
+      });
+      storeGeneration({
+        audio: nextResult.audio,
+        filename: nextResult.filename,
+        segments: nextResult.segments,
+        payload,
+      }).catch((error) => {
+        console.warn(`${logPrefix} Stored MP3 save skipped`, error);
       });
       setStatus("Generated successfully.");
       console.info(`${logPrefix} MP3 ready`, {

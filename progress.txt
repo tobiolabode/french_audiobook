@@ -364,3 +364,30 @@ Git:
 
 Notes:
 - This fixes the reported production symptom where OneDrive save failed with an ElevenLabs 401 even though the MP3 had already been generated and was playable in the browser.
+
+## 2026-06-16 01:00 - main
+
+Task: T015 Keep generated MP3 available across OneDrive auth
+Summary:
+- Added IndexedDB persistence for the generated browser MP3 blob and metadata after successful generation.
+- Restored the generated output panel after reload/auth return so Save to OneDrive can upload existing audio without another ElevenLabs call.
+- Added Playwright browser coverage for generate, reload, restore, and OneDrive save with mocked APIs.
+- Fixed the Vite dev proxy so `/api.ts` frontend module requests are not proxied to the backend.
+
+Tests:
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node scripts/vitest.mjs run tests/app/App.test.tsx'`: failed red first because `src/app/generatedAudioStore.ts` did not exist, then passed after implementation.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node scripts/vitest.mjs run'`: passed, 8 frontend tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests`: passed, 27 tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin npm run build'`: passed.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin npm run test:e2e -- tests/e2e/onedrive-save.spec.ts'`: failed until Playwright Chromium was installed and the Vite proxy was tightened, then passed.
+- `C:\ProgramData\miniconda3\python.exe -m json.tool prd.json`: passed.
+- `git diff --check`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- The in-app Browser plugin could not run because the Windows sandbox helper executable is missing in this environment, so browser-level verification was completed with Playwright instead.
+- `@playwright/test` and Chromium were installed for repeatable local browser testing.

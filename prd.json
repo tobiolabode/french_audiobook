@@ -467,6 +467,46 @@
         "progress.txt"
       ],
       "notes": "Implemented by posting the browser-held MP3 blob as multipart/form-data to `/api/drive/save`; the backend now parses the upload and sends those bytes to Microsoft Graph without calling ElevenLabs."
+    },
+    {
+      "id": "T015",
+      "title": "Keep generated MP3 available across OneDrive auth",
+      "description": "Persist the already-generated browser MP3 so a Microsoft OAuth redirect or page reload does not force another ElevenLabs generation before saving to OneDrive.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T014"
+      ],
+      "acceptance_criteria": [
+        "After successful MP3 generation, the app stores the generated audio bytes and metadata in browser storage.",
+        "On page load after Microsoft auth or reload, the app restores the generated MP3 output panel when stored audio exists.",
+        "Saving a restored MP3 to OneDrive uploads the stored blob to `/api/drive/save` without calling `/api/generate` again.",
+        "Storage failures do not break generation, download, or save behavior.",
+        "Regression tests cover save-after-reload/auth behavior."
+      ],
+      "test_plan": [
+        "Add a frontend regression test that restores a generated MP3 and saves it to OneDrive without posting to `/api/generate`.",
+        "Add a browser regression test for generate, reload, restore, and OneDrive save with mocked network calls.",
+        "Run the frontend test suite.",
+        "Run the Playwright browser regression.",
+        "Run backend pytest checks.",
+        "Run Python compile checks.",
+        "Run the production build."
+      ],
+      "files_expected_to_change": [
+        "package.json",
+        "package-lock.json",
+        "playwright.config.ts",
+        "src/app/App.tsx",
+        "src/app/generatedAudioStore.ts",
+        "tests/e2e/onedrive-save.spec.ts",
+        "tests/app/App.test.tsx",
+        "vite.config.ts",
+        "vitest.config.ts",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Created from the reported production regression where OneDrive save/auth recovery led users back into ElevenLabs generation and exposed a 401."
     }
   ],
   "completion_criteria": [

@@ -1,10 +1,19 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { StoredGenerationResult } from "../../src/app/generatedAudioStore";
 import { App } from "../../src/app/App";
+import { loadStoredGeneration, storeGeneration } from "../../src/app/generatedAudioStore";
+
+vi.mock("../../src/app/generatedAudioStore", () => ({
+  loadStoredGeneration: vi.fn(async () => null),
+  storeGeneration: vi.fn(async () => undefined),
+}));
 
 describe("App", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(loadStoredGeneration).mockResolvedValue(null);
+    vi.mocked(storeGeneration).mockResolvedValue(undefined);
     vi.stubGlobal(
       "URL",
       Object.assign(URL, {
@@ -315,5 +324,71 @@ describe("App", () => {
     expect(formData.get("audio")).toBeInstanceOf(Blob);
     expect((formData.get("audio") as Blob).type).toBe("audio/mpeg");
     expect(await screen.findByText("Saved to OneDrive: onedrive.mp3")).toBeInTheDocument();
+  });
+
+  it("restores a generated MP3 after auth reload and saves it without generating again", async () => {
+    const restored: StoredGenerationResult = {
+      audio: new Blob(["stored-mp3"], { type: "audio/mpeg" }),
+      filename: "restored-onedrive.mp3",
+      segments: 1,
+      payload: {
+        title: "Restored",
+        text: "Bonjour.",
+        voice_id: "JBFqnCBsd6RMkjVDRZzb",
+        model_id: "eleven_multilingual_v2",
+        pause_ms: 500,
+        speed: 1,
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0,
+      },
+    };
+    vi.mocked(loadStoredGeneration).mockResolvedValueOnce(restored);
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
+            has_default_voice: true,
+            storage_mode: "direct_response",
+            onedrive_enabled: true,
+            onedrive_folder_name: "French Audiobook MP3",
+            missing_required: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ enabled: true, connected: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ name: "restored-onedrive.mp3" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+    render(<App />);
+
+    expect(await screen.findByText("Restored generated audio.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute(
+      "download",
+      "restored-onedrive.mp3",
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Save to OneDrive" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/drive/save",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/generate")).toBe(false);
+    expect(await screen.findByText("Saved to OneDrive: restored-onedrive.mp3")).toBeInTheDocument();
   });
 });
