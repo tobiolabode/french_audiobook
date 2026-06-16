@@ -512,7 +512,7 @@
       "id": "T016",
       "title": "Restore valid ElevenLabs production credentials",
       "description": "Update the Vercel production ElevenLabs API key or account configuration so new MP3 generation no longer returns ElevenLabs 401.",
-      "status": "blocked",
+      "status": "done",
       "priority": "high",
       "dependencies": [
         "T012"
@@ -531,7 +531,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "The production secret was replaced and redeployed. Direct ElevenLabs `/v1/user` and default voice checks succeed with the provided key, but TTS synthesis still returns 401 while the account reports 10000/10000 characters used on the free tier. A plan/quota reset or upgraded key/account is required."
+      "notes": "The production secret was replaced and redeployed. The user topped up the ElevenLabs account, and a production `/api/generate` smoke request now returns HTTP 201 audio/mpeg with quota headers."
     },
     {
       "id": "T017",
@@ -571,7 +571,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "Created after the user topped up ElevenLabs and asked for quota visibility plus low-balance warnings in the app."
+      "notes": "Implemented and deployed. Production generation now returns quota headers, and the UI displays remaining quota plus a low-quota warning when appropriate."
     }
   ],
   "completion_criteria": [

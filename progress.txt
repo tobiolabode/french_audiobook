@@ -461,3 +461,24 @@ Git:
 
 Notes:
 - Production deployment and live quota-header smoke verification remain to be run after commit/push.
+
+## 2026-06-16 01:43 - main
+
+Task: T016 Restore valid ElevenLabs production credentials / T017 Show ElevenLabs quota after generation
+Summary:
+- Verified the GitHub-triggered Vercel production deployment for commit `6618a10` reached READY.
+- Confirmed production generation works after the user topped up ElevenLabs quota.
+- Confirmed production `/api/generate` returns ElevenLabs quota headers for the UI.
+- Marked the previous ElevenLabs production credential/quota blocker done in the PRD.
+
+Tests:
+- Vercel deployment `dpl_BbKWm2bXZQfHcoEqa7EFo4wQyMGp`: READY and aliased to `https://frenchaudiobook.vercel.app`.
+- Tiny production `/api/generate` smoke request with `Bonjour.`: passed, HTTP 201 `audio/mpeg`, 1 segment, 15090 bytes.
+- Production quota headers after smoke request: `X-Elevenlabs-Character-Count: 10796`, `X-Elevenlabs-Character-Limit: 37472`, `X-Elevenlabs-Character-Remaining: 26676`, `X-Elevenlabs-Character-Remaining-Percent: 71`.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- The smoke test consumed a very small amount of ElevenLabs quota.
