@@ -14,6 +14,7 @@ from french_audiobook.app import (
     AppConfigError,
     app_settings_from_env,
     audio_response_headers,
+    elevenlabs_quota_from_settings,
     generate_audio_from_body,
     parse_json_body,
 )
@@ -35,7 +36,8 @@ class handler(BaseHTTPRequestHandler):
                 f"voice_provided={bool(str(body.get('voice_id', '')).strip())}",
                 flush=True,
             )
-            generated = generate_audio_from_body(body, settings=app_settings_from_env())
+            settings = app_settings_from_env()
+            generated = generate_audio_from_body(body, settings=settings)
         except (ValueError, ElevenLabsError) as exc:
             print(f"{LOG_PREFIX} /api/generate rejected: {exc}", flush=True)
             self._send_json({"error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
@@ -50,8 +52,9 @@ class handler(BaseHTTPRequestHandler):
             f"filename={generated.filename} segments={generated.segments} bytes={len(generated.audio)}",
             flush=True,
         )
+        quota = elevenlabs_quota_from_settings(settings)
         self.send_response(HTTPStatus.CREATED)
-        for key, value in audio_response_headers(generated).items():
+        for key, value in audio_response_headers(generated, quota=quota).items():
             self.send_header(key, value)
         self.end_headers()
         self.wfile.write(generated.audio)

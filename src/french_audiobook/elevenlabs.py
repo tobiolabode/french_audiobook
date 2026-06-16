@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -8,6 +9,22 @@ from urllib.request import Request, urlopen
 
 class ElevenLabsError(RuntimeError):
     """Raised when ElevenLabs text-to-speech generation fails."""
+
+
+@dataclass(frozen=True)
+class ElevenLabsQuota:
+    character_count: int
+    character_limit: int
+
+    @property
+    def remaining(self) -> int:
+        return max(0, self.character_limit - self.character_count)
+
+    @property
+    def remaining_percent(self) -> int:
+        if self.character_limit <= 0:
+            return 0
+        return max(0, min(100, int((self.remaining / self.character_limit) * 100)))
 
 
 class ElevenLabsClient:
@@ -55,3 +72,30 @@ class ElevenLabsClient:
             raise ElevenLabsError(f"ElevenLabs request failed with status {exc.code}") from exc
         except URLError as exc:
             raise ElevenLabsError("ElevenLabs request failed") from exc
+
+    def quota(self, *, api_key: str) -> ElevenLabsQuota:
+        request = Request(
+            f"{self.base_url}/v1/user",
+            headers={
+                "accept": "application/json",
+                "xi-api-key": api_key,
+            },
+            method="GET",
+        )
+
+        try:
+            with urlopen(request, timeout=self._timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            raise ElevenLabsError(f"ElevenLabs quota request failed with status {exc.code}") from exc
+        except (URLError, json.JSONDecodeError, UnicodeDecodeError, KeyError, TypeError, ValueError) as exc:
+            raise ElevenLabsError("ElevenLabs quota request failed") from exc
+
+        try:
+            subscription = payload["subscription"]
+            return ElevenLabsQuota(
+                character_count=int(subscription["character_count"]),
+                character_limit=int(subscription["character_limit"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ElevenLabsError("ElevenLabs quota response was incomplete") from exc

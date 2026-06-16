@@ -16,6 +16,7 @@ import {
   getOneDriveStatus,
   saveToOneDrive,
   type AppConfig,
+  type ElevenLabsQuota,
   type GeneratePayload,
   type GenerationResult,
   type OneDriveStatus,
@@ -57,6 +58,7 @@ const sliderFormat = new Intl.NumberFormat("en", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const integerFormat = new Intl.NumberFormat("en");
 
 const logPrefix = "[FrenchAudiobook]";
 
@@ -111,6 +113,7 @@ export function App() {
           audio: stored.audio,
           filename: stored.filename,
           segments: stored.segments,
+          quota: stored.quota,
           previewUrl: audioUrl,
           downloadUrl: audioUrl,
           payload: stored.payload,
@@ -197,6 +200,7 @@ export function App() {
         audio: nextResult.audio,
         filename: nextResult.filename,
         segments: nextResult.segments,
+        quota: nextResult.quota,
         previewUrl: audioUrl,
         downloadUrl: audioUrl,
         payload,
@@ -205,6 +209,7 @@ export function App() {
         audio: nextResult.audio,
         filename: nextResult.filename,
         segments: nextResult.segments,
+        quota: nextResult.quota,
         payload,
       }).catch((error) => {
         console.warn(`${logPrefix} Stored MP3 save skipped`, error);
@@ -409,6 +414,7 @@ export function App() {
                 <Download size={18} aria-hidden="true" />
                 Download MP3
               </a>
+              {result.quota ? <QuotaStatus quota={result.quota} /> : null}
               {config?.onedrive_enabled ? (
                 oneDriveStatus?.connected ? (
                   <button
@@ -462,6 +468,22 @@ function buildGeneratePayload(form: FormState): GeneratePayload {
     similarity_boost: form.similarity,
     style: form.style,
   };
+}
+
+function QuotaStatus({ quota }: { quota: ElevenLabsQuota }) {
+  return (
+    <div className={quota.isLow ? "quota-status low" : "quota-status"} role={quota.isLow ? "alert" : undefined}>
+      {quota.isLow ? <CircleAlert size={18} aria-hidden="true" /> : <Gauge size={18} aria-hidden="true" />}
+      <div>
+        <strong>{integerFormat.format(quota.characterRemaining)} characters remaining</strong>
+        <span>
+          {integerFormat.format(quota.characterCount)} of {integerFormat.format(quota.characterLimit)} used.
+        </span>
+        {quota.isLow ? <span>Top up soon to avoid failed MP3 generation.</span> : null}
+      </div>
+      {quota.isLow ? <strong className="quota-warning">Low ElevenLabs quota</strong> : null}
+    </div>
+  );
 }
 
 type RangeFieldProps = {

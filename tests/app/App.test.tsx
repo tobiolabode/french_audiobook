@@ -82,6 +82,10 @@ describe("App", () => {
             "content-type": "audio/mpeg",
             "content-disposition": 'attachment; filename="lecon.mp3"',
             "x-audiobook-segments": "2",
+            "x-elevenlabs-character-count": "9000",
+            "x-elevenlabs-character-limit": "10000",
+            "x-elevenlabs-character-remaining": "1000",
+            "x-elevenlabs-character-remaining-percent": "10",
           },
         }),
       );
@@ -111,8 +115,50 @@ describe("App", () => {
     expect(screen.getByLabelText("Generated audio preview")).toHaveAttribute("src", "blob:generated-audio");
     expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("href", "blob:generated-audio");
     expect(screen.getByRole("link", { name: "Download MP3" })).toHaveAttribute("download", "lecon.mp3");
+    expect(screen.getByText("1,000 characters remaining")).toBeInTheDocument();
+    expect(screen.getByText("9,000 of 10,000 used.")).toBeInTheDocument();
     expect(screen.getByText("lecon.mp3")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("warns after generation when ElevenLabs quota is running low", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            default_model_id: "eleven_multilingual_v2",
+            default_voice_id: "JBFqnCBsd6RMkjVDRZzb",
+            has_default_voice: true,
+            storage_mode: "direct_response",
+            onedrive_enabled: false,
+            onedrive_folder_name: "French Audiobook MP3",
+            missing_required: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(new Blob(["mp3"], { type: "audio/mpeg" }), {
+          status: 201,
+          headers: {
+            "content-type": "audio/mpeg",
+            "content-disposition": 'attachment; filename="low-quota.mp3"',
+            "x-audiobook-segments": "1",
+            "x-elevenlabs-character-count": "9800",
+            "x-elevenlabs-character-limit": "10000",
+            "x-elevenlabs-character-remaining": "200",
+            "x-elevenlabs-character-remaining-percent": "2",
+          },
+        }),
+      );
+
+    render(<App />);
+    await userEvent.type(screen.getByLabelText("French text"), "Bonjour.");
+    await userEvent.click(screen.getByRole("button", { name: /generate mp3/i }));
+
+    expect(await screen.findByText("200 characters remaining")).toBeInTheDocument();
+    expect(screen.getByText("Low ElevenLabs quota")).toBeInTheDocument();
+    expect(screen.getByText("Top up soon to avoid failed MP3 generation.")).toBeInTheDocument();
   });
 
   it("fills the configured default voice so generation and download are not blocked", async () => {

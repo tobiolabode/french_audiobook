@@ -435,3 +435,29 @@ Git:
 Notes:
 - The remaining issue is not app-side credential loading: the key is valid for account/voice lookup, but the ElevenLabs account has no remaining character quota for synthesis.
 - To restore generation, add quota, wait for the plan reset, upgrade the account, or provide a key from an account with available TTS characters.
+
+## 2026-06-16 01:39 - main
+
+Task: T017 Show ElevenLabs quota after generation
+Summary:
+- Added ElevenLabs account quota lookup after successful MP3 generation.
+- Added quota metadata headers to `/api/generate` MP3 responses when available.
+- Updated the React output panel to show remaining character quota after generation.
+- Added a low-quota warning sign and top-up prompt when remaining quota is at or below 10% or 1,000 characters.
+- Kept quota lookup best-effort so a quota API hiccup does not break a successful MP3 response.
+
+Tests:
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests\test_app.py`: failed red first on missing quota support, then passed with 16 tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m pytest --basetemp=.pytest-tmp tests`: passed, 29 tests.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node scripts/vitest.mjs run tests/app/App.test.tsx'`: failed red first on missing quota UI, then passed with 9 tests.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin node scripts/vitest.mjs run'`: passed, 9 frontend tests.
+- `$env:PYTHONPATH='src'; C:\ProgramData\miniconda3\python.exe -m compileall src tests api`: passed.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin npm run build'`: passed.
+- `wsl -d Ubuntu --cd /home/tnint/coding/french_audiobook -- bash -lc 'PATH=/home/tnint/coding/french_audiobook/.tools/node-v22.12.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin npm run test:e2e -- tests/e2e/onedrive-save.spec.ts'`: passed.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- Production deployment and live quota-header smoke verification remain to be run after commit/push.

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError
+from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError, ElevenLabsQuota
 from french_audiobook.generator import (
     AudiobookConfig,
     AudiobookGenerator,
@@ -175,14 +175,32 @@ def generate_audio_from_body(
     )
 
 
-def audio_response_headers(generated: GeneratedAudio) -> dict[str, str]:
+def audio_response_headers(generated: GeneratedAudio, *, quota: ElevenLabsQuota | None = None) -> dict[str, str]:
     safe_filename = generated.filename.replace('"', "")
-    return {
+    headers = {
         "content-type": "audio/mpeg",
         "content-length": str(len(generated.audio)),
         "content-disposition": f'attachment; filename="{safe_filename}"',
         "x-audiobook-segments": str(generated.segments),
     }
+    if quota is not None:
+        headers.update(
+            {
+                "x-elevenlabs-character-count": str(quota.character_count),
+                "x-elevenlabs-character-limit": str(quota.character_limit),
+                "x-elevenlabs-character-remaining": str(quota.remaining),
+                "x-elevenlabs-character-remaining-percent": str(quota.remaining_percent),
+            }
+        )
+    return headers
+
+
+def elevenlabs_quota_from_settings(settings: AppSettings) -> ElevenLabsQuota | None:
+    try:
+        return ElevenLabsClient().quota(api_key=settings.config.api_key)
+    except ElevenLabsError as exc:
+        print(f"{LOG_PREFIX} ElevenLabs quota lookup skipped: {exc}", flush=True)
+        return None
 
 
 def build_onedrive_status_payload(settings: AppSettings, cookie_header_value: str | None) -> dict[str, bool]:
@@ -305,13 +323,14 @@ class FrenchAudiobookHandler(SimpleHTTPRequestHandler):
             self._send_json({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        quota = elevenlabs_quota_from_settings(self._settings)
         print(
             f"{LOG_PREFIX} /api/generate success "
             f"filename={result.filename} segments={result.segments} bytes={len(result.audio)}",
             flush=True,
         )
         self.send_response(HTTPStatus.CREATED)
-        for key, value in audio_response_headers(result).items():
+        for key, value in audio_response_headers(result, quota=quota).items():
             self.send_header(key, value)
         self.end_headers()
         self.wfile.write(result.audio)

@@ -1,4 +1,4 @@
-import type { GeneratePayload } from "./api";
+import type { ElevenLabsQuota, GeneratePayload } from "./api";
 
 const DB_NAME = "french-audiobook";
 const STORE_NAME = "generated-audio";
@@ -8,6 +8,7 @@ export type StoredGenerationResult = {
   audio: Blob;
   filename: string;
   segments: number;
+  quota?: ElevenLabsQuota;
   payload: GeneratePayload;
 };
 
@@ -46,6 +47,7 @@ export async function loadStoredGeneration(): Promise<StoredGenerationResult | n
     audio: record.audio,
     filename: record.filename,
     segments: record.segments,
+    quota: record.quota,
     payload: record.payload,
   };
 }

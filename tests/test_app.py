@@ -19,7 +19,7 @@ from french_audiobook.app import (
     _voice_settings_from_body,
 )
 from french_audiobook.onedrive import DRIVE_TOKEN_COOKIE, signed_cookie_dumps
-from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError
+from french_audiobook.elevenlabs import ElevenLabsClient, ElevenLabsError, ElevenLabsQuota
 
 
 def test_app_settings_require_secret_and_output_dir(tmp_path, monkeypatch):
@@ -162,6 +162,17 @@ def test_generate_audio_from_body_returns_streamable_audio(tmp_path):
     }
 
 
+def test_audio_response_headers_include_quota_metadata():
+    generated = SimpleNamespace(filename="lecon.mp3", audio=b"mp3", segments=1)
+
+    headers = audio_response_headers(generated, quota=ElevenLabsQuota(character_count=9250, character_limit=10000))
+
+    assert headers["x-elevenlabs-character-count"] == "9250"
+    assert headers["x-elevenlabs-character-limit"] == "10000"
+    assert headers["x-elevenlabs-character-remaining"] == "750"
+    assert headers["x-elevenlabs-character-remaining-percent"] == "7"
+
+
 def test_parse_multipart_audio_upload_reads_generated_mp3_blob():
     boundary = "----audiobook-boundary"
     raw = (
@@ -300,6 +311,42 @@ def test_elevenlabs_client_sends_expected_request(monkeypatch):
         "language_code": "fr",
         "voice_settings": {"stability": 0.5},
     }
+    assert captured["timeout"] == 60
+
+
+def test_elevenlabs_client_reads_account_quota(monkeypatch):
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "subscription": {
+                        "character_count": 9250,
+                        "character_limit": 10000,
+                    }
+                }
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr("french_audiobook.elevenlabs.urlopen", fake_urlopen)
+
+    quota = ElevenLabsClient().quota(api_key="secret-key")
+
+    assert quota == ElevenLabsQuota(character_count=9250, character_limit=10000)
+    assert captured["url"].endswith("/v1/user")
+    assert captured["headers"]["Xi-api-key"] == "secret-key"
     assert captured["timeout"] == 60
 
 

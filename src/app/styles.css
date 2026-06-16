@@ -243,6 +243,42 @@ audio {
   width: 100%;
 }
 
+.quota-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border-left: 3px solid #2e6b71;
+  padding-left: 12px;
+  color: #263436;
+}
+
+.quota-status > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.quota-status span {
+  color: #526163;
+  font-size: 13px;
+}
+
+.quota-status.low {
+  border-left-color: #b15d13;
+  color: #7b3f0d;
+}
+
+.quota-status.low span {
+  color: #7b3f0d;
+}
+
+.quota-warning {
+  grid-column: 2;
+  color: #7b3f0d;
+  font-size: 13px;
+}
+
 .metadata {
   display: grid;
   gap: 7px;

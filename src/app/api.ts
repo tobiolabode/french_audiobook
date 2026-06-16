@@ -24,6 +24,15 @@ export type GenerationResult = {
   audio: Blob;
   filename: string;
   segments: number;
+  quota?: ElevenLabsQuota;
+};
+
+export type ElevenLabsQuota = {
+  characterCount: number;
+  characterLimit: number;
+  characterRemaining: number;
+  characterRemainingPercent: number;
+  isLow: boolean;
 };
 
 export type OneDriveStatus = {
@@ -116,6 +125,7 @@ export async function generateAudiobook(payload: GeneratePayload): Promise<Gener
       audio,
       filename: filenameFromContentDisposition(response.headers.get("content-disposition")),
       segments: Number(response.headers.get("x-audiobook-segments") || "0"),
+      quota: quotaFromHeaders(response.headers),
     };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -162,4 +172,36 @@ function filenameFromContentDisposition(value: string | null): string {
   }
   const match = /filename="?([^";]+)"?/i.exec(value);
   return match?.[1] || "french-audiobook.mp3";
+}
+
+function quotaFromHeaders(headers: Headers): ElevenLabsQuota | undefined {
+  const characterCount = numberFromHeader(headers.get("x-elevenlabs-character-count"));
+  const characterLimit = numberFromHeader(headers.get("x-elevenlabs-character-limit"));
+  const characterRemaining = numberFromHeader(headers.get("x-elevenlabs-character-remaining"));
+  const characterRemainingPercent = numberFromHeader(headers.get("x-elevenlabs-character-remaining-percent"));
+
+  if (
+    characterCount === undefined ||
+    characterLimit === undefined ||
+    characterRemaining === undefined ||
+    characterRemainingPercent === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    characterCount,
+    characterLimit,
+    characterRemaining,
+    characterRemainingPercent,
+    isLow: characterRemainingPercent <= 10 || characterRemaining <= 1000,
+  };
+}
+
+function numberFromHeader(value: string | null): number | undefined {
+  if (value === null || value.trim() === "") {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

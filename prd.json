@@ -532,6 +532,46 @@
         "progress.txt"
       ],
       "notes": "The production secret was replaced and redeployed. Direct ElevenLabs `/v1/user` and default voice checks succeed with the provided key, but TTS synthesis still returns 401 while the account reports 10000/10000 characters used on the free tier. A plan/quota reset or upgraded key/account is required."
+    },
+    {
+      "id": "T017",
+      "title": "Show ElevenLabs quota after generation",
+      "description": "After every successful MP3 generation, show the remaining ElevenLabs character quota in the output panel and warn clearly when the account is running low.",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        "T012"
+      ],
+      "acceptance_criteria": [
+        "The server checks ElevenLabs account usage after a successful generation without exposing the API key.",
+        "`/api/generate` returns quota metadata with the MP3 response when available.",
+        "The React output panel shows remaining quota text after generation.",
+        "The React output panel shows a warning icon and warning text when remaining quota is low.",
+        "Quota lookup failure does not break successful MP3 generation."
+      ],
+      "test_plan": [
+        "Add backend tests for ElevenLabs quota parsing and MP3 quota response headers.",
+        "Add frontend tests for normal quota text and low-quota warning display.",
+        "Run backend pytest checks.",
+        "Run frontend tests.",
+        "Run Python compile checks.",
+        "Run the production build.",
+        "Run the Playwright browser regression."
+      ],
+      "files_expected_to_change": [
+        "api/generate.py",
+        "src/app/App.tsx",
+        "src/app/api.ts",
+        "src/app/generatedAudioStore.ts",
+        "src/app/styles.css",
+        "src/french_audiobook/app.py",
+        "src/french_audiobook/elevenlabs.py",
+        "tests/app/App.test.tsx",
+        "tests/test_app.py",
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Created after the user topped up ElevenLabs and asked for quota visibility plus low-balance warnings in the app."
     }
   ],
   "completion_criteria": [
