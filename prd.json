@@ -507,6 +507,31 @@
         "progress.txt"
       ],
       "notes": "Created from the reported production regression where OneDrive save/auth recovery led users back into ElevenLabs generation and exposed a 401."
+    },
+    {
+      "id": "T016",
+      "title": "Restore valid ElevenLabs production credentials",
+      "description": "Update the Vercel production ElevenLabs API key or account configuration so new MP3 generation no longer returns ElevenLabs 401.",
+      "status": "blocked",
+      "priority": "high",
+      "dependencies": [
+        "T012"
+      ],
+      "acceptance_criteria": [
+        "Vercel production has a valid `ELEVENLABS_API_KEY` for the ElevenLabs account.",
+        "A tiny production `/api/generate` smoke request returns an `audio/mpeg` MP3 response.",
+        "The app still does not expose the ElevenLabs key to browser code."
+      ],
+      "test_plan": [
+        "Update the encrypted Vercel production environment variable with a valid key.",
+        "Redeploy or trigger a production deployment after updating the secret.",
+        "Run a tiny production generation smoke test and verify HTTP 201 audio/mpeg."
+      ],
+      "files_expected_to_change": [
+        "prd.json",
+        "progress.txt"
+      ],
+      "notes": "Blocked because the currently deployed production secret is present but rejected by ElevenLabs with status 401. A valid ElevenLabs API key or account-side fix is required."
     }
   ],
   "completion_criteria": [

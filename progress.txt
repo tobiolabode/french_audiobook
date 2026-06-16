@@ -391,3 +391,21 @@ Git:
 Notes:
 - The in-app Browser plugin could not run because the Windows sandbox helper executable is missing in this environment, so browser-level verification was completed with Playwright instead.
 - `@playwright/test` and Chromium were installed for repeatable local browser testing.
+
+## 2026-06-16 01:05 - main
+
+Task: T016 Restore valid ElevenLabs production credentials
+Summary:
+- Added a blocked follow-up task after live production smoke testing showed the deployed ElevenLabs key is still rejected.
+
+Tests:
+- `https://frenchaudiobook.vercel.app/`: passed, HTTP 200 and serving the latest built JS asset.
+- `https://frenchaudiobook.vercel.app/api/config`: passed, HTTP 200 with `missing_required: []` and `onedrive_enabled: true`.
+- Tiny production `/api/generate` smoke request with `Bonjour.`: failed, HTTP 400 body `{"error": "ElevenLabs request failed with status 401"}`.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- The OneDrive auth/reload save path is fixed in commit `dc0dfa5`, but new MP3 generation still needs a valid ElevenLabs production API key or account-side fix.
