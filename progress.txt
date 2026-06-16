@@ -409,3 +409,29 @@ Git:
 
 Notes:
 - The OneDrive auth/reload save path is fixed in commit `dc0dfa5`, but new MP3 generation still needs a valid ElevenLabs production API key or account-side fix.
+
+## 2026-06-16 01:18 - main
+
+Task: T016 Restore valid ElevenLabs production credentials
+Summary:
+- Replaced the encrypted Vercel production `ELEVENLABS_API_KEY` with the user-provided key without writing the secret to repository files.
+- Redeployed production so the serverless functions use the replacement environment variable.
+- Confirmed the key authenticates with ElevenLabs and the default voice is accessible.
+- Confirmed TTS generation still fails because the ElevenLabs account is at its character limit.
+
+Tests:
+- `npx vercel@latest env rm ELEVENLABS_API_KEY production --yes`: passed.
+- `npx vercel@latest env add ELEVENLABS_API_KEY production --yes`: passed through stdin.
+- `npx vercel@latest deploy --prod --yes`: passed, deployment `dpl_HKDbz7b4vSdkqGh9bUDLg8jvovZV` reached READY and was aliased to `https://frenchaudiobook.vercel.app`.
+- Production `/api/generate` smoke request with `Bonjour.`: failed, HTTP 400 body `{"error": "ElevenLabs request failed with status 401"}`.
+- ElevenLabs `/v1/user` with the replacement key: passed, HTTP 200; subscription reports free tier with `character_count: 10000` and `character_limit: 10000`.
+- ElevenLabs `/v1/voices/JBFqnCBsd6RMkjVDRZzb` with the replacement key: passed, HTTP 200.
+- Direct ElevenLabs TTS request for `Bonjour.` with the replacement key and default voice: failed, HTTP 401.
+
+Git:
+- Commit: this commit
+- Pushed: yes
+
+Notes:
+- The remaining issue is not app-side credential loading: the key is valid for account/voice lookup, but the ElevenLabs account has no remaining character quota for synthesis.
+- To restore generation, add quota, wait for the plan reset, upgrade the account, or provide a key from an account with available TTS characters.

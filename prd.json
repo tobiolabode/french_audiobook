@@ -531,7 +531,7 @@
         "prd.json",
         "progress.txt"
       ],
-      "notes": "Blocked because the currently deployed production secret is present but rejected by ElevenLabs with status 401. A valid ElevenLabs API key or account-side fix is required."
+      "notes": "The production secret was replaced and redeployed. Direct ElevenLabs `/v1/user` and default voice checks succeed with the provided key, but TTS synthesis still returns 401 while the account reports 10000/10000 characters used on the free tier. A plan/quota reset or upgraded key/account is required."
     }
   ],
   "completion_criteria": [
